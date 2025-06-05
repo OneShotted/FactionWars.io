@@ -16,6 +16,8 @@ let world = {
   height: 5000
 };
 
+let allPlayers = {};
+
 playButton.onclick = () => {
   const username = usernameInput.value.trim();
   if (!username) {
@@ -34,7 +36,8 @@ playButton.onclick = () => {
     x: world.width / 2,
     y: world.height / 2,
     radius: 20,
-    color: "#00ffcc"
+    color: "#00ffcc",
+    id: null // will be set after server response
   };
 
   socket = new WebSocket("wss://factionwarsbackend.onrender.com");
@@ -46,7 +49,18 @@ playButton.onclick = () => {
 
   socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
-    console.log(data);
+
+    if (data.type === "init") {
+      player.id = data.id;
+      console.log("Assigned player id:", player.id);
+    }
+
+    if (data.type === "players") {
+      allPlayers = {};
+      data.players.forEach(p => {
+        allPlayers[p.id] = p;
+      });
+    }
   };
 
   requestAnimationFrame(gameLoop);
@@ -60,23 +74,28 @@ document.addEventListener("keyup", (e) => {
   keys[e.key.toLowerCase()] = false;
 });
 
-function drawPlayer() {
-  const centerX = canvas.width / 2;
-  const centerY = canvas.height / 2;
+function drawPlayerCircle(playerObj, isSelf = false) {
+  if (!playerObj) return;
 
-  ctx.fillStyle = player.color;
+  // Calculate offset to center camera on your player
+  const offsetX = canvas.width / 2 - player.x;
+  const offsetY = canvas.height / 2 - player.y;
+
+  const screenX = playerObj.x + offsetX;
+  const screenY = playerObj.y + offsetY;
+
+  ctx.fillStyle = isSelf ? playerObj.color : "#ff4d4d";
   ctx.beginPath();
-  ctx.arc(centerX, centerY, player.radius, 0, Math.PI * 2);
+  ctx.arc(screenX, screenY, playerObj.radius || 20, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = "white";
-  ctx.font = "16px sans-serif";
+  ctx.font = "14px sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(player.name, centerX, centerY - player.radius - 10);
+  ctx.fillText(playerObj.name, screenX, screenY - (playerObj.radius || 20) - 10);
 }
 
 function drawWorld() {
-  // Simulate a world grid for reference
   const offsetX = canvas.width / 2 - player.x;
   const offsetY = canvas.height / 2 - player.y;
 
@@ -103,21 +122,36 @@ function updatePlayer() {
   if (keys["a"]) player.x -= speed;
   if (keys["d"]) player.x += speed;
 
-  // Clamp to world bounds
   player.x = Math.max(player.radius, Math.min(world.width - player.radius, player.x));
   player.y = Math.max(player.radius, Math.min(world.height - player.radius, player.y));
+}
+
+function sendPosition() {
+  if (socket && socket.readyState === WebSocket.OPEN && player.id) {
+    socket.send(JSON.stringify({
+      type: "move",
+      x: player.x,
+      y: player.y
+    }));
+  }
 }
 
 function gameLoop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   updatePlayer();
+  sendPosition();
 
-  if (player) {
-    drawWorld();
-    drawPlayer();
+  drawWorld();
+
+  for (const id in allPlayers) {
+    const p = allPlayers[id];
+    if (id === player.id) {
+      drawPlayerCircle(player, true);
+    } else {
+      drawPlayerCircle(p, false);
+    }
   }
 
   requestAnimationFrame(gameLoop);
 }
-
