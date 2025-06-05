@@ -1,47 +1,185 @@
-body, html {
+body {
   margin: 0;
-  padding: 0;
   overflow: hidden;
-  background-color: #111;
   font-family: sans-serif;
 }
 
-canvas {
-  display: block;
+#username-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #95d7ae;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
 }
 
-#menu {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(20, 20, 20, 0.9);
-  padding: 30px;
-  border-radius: 12px;
-  text-align: center;
-  color: white;
+#game-title {
+  font-size: 48px;
+  margin-bottom: 20px;
 }
 
-#usernameInput {
+#username-input {
   padding: 10px;
   font-size: 16px;
-  width: 200px;
-  margin-bottom: 10px;
-  border-radius: 8px;
-  border: none;
+  margin: 10px;
 }
 
-#playButton {
+#start-button {
   padding: 10px 20px;
   font-size: 16px;
-  cursor: pointer;
-  border-radius: 8px;
-  border: none;
-  background-color: #3498db;
-  color: white;
-  transition: background 0.3s ease;
 }
 
-#playButton:hover {
-  background-color: #2980b9;
+#chat-container {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  width: 300px;
+  max-height: 200px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 8px;
+  border-radius: 8px;
+  display: none;
+  flex-direction: column;
 }
+
+#chat-log {
+  flex: 1;
+  max-height: 120px;
+  overflow-y: auto;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+#chat-input {
+  width: 70%;
+  padding: 4px;
+}
+
+#send-chat {
+  width: 28%;
+  padding: 4px;
+  margin-left: 2%;
+}
+
+#dev-panel {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 300px;
+  background: #fff8e1;
+  padding: 10px;
+  border: 2px solid #f0c36d;
+  border-radius: 10px;
+  display: none;
+  z-index: 20;
+}
+
+#dev-player-list {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+
+#dev-player-list div {
+  margin-bottom: 4px;
+}
+
+#menu-bar {
+  z-index: 15;
+  position: fixed;
+  top: 0;
+  left: 0;
+  padding: 10px;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+
+
+.menu-button {
+  z-index: 15;
+  background: #f0f0f0;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 14px;
+}
+
+#changelog {
+  position: fixed;
+  top: 50px;
+  left: 30px;
+  z-index: 15;
+  background-color: gray;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+#changelog h2 {
+  margin-top: 0;
+}
+
+.red-message {
+  color: red;
+  font-weight: bold;
+}
+
+#discord-button img {
+  width: 100%;
+  height: 100%;
+}
+
+#changelog-toggle {
+  padding: 6px 12px;
+  font-size: 14px;
+  background-color: #ffffff;
+  border: 1px solid #999;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+#discord-button {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f0f0;
+  border-radius: 8px;
+}
+#inventory-panel {
+  position: fixed;
+  top: 100px;
+  right: 50px;
+  background: #fff;
+  padding: 15px;
+  border: 2px solid #ccc;
+  border-radius: 10px;
+  z-index: 20;
+}
+
+#inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 60px);
+  grid-gap: 10px;
+}
+
+.inventory-slot {
+  width: 60px;
+  height: 60px;
+  border: 2px solid black;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  font-size: 24px;
+  cursor: grab;
+}
+
+
