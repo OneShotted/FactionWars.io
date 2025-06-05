@@ -12,7 +12,7 @@ document.querySelectorAll('.faction-button').forEach(button => {
     if (!playerName) return alert("Enter a username!");
 
     // Connect to server
-    socket = new WebSocket('wss://your-render-server.onrender.com');
+    socket = new WebSocket('wss://factionwarsbackend.onrender.com');
 
     socket.onopen = () => {
       socket.send(JSON.stringify({
