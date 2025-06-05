@@ -87,7 +87,7 @@ function stop() {
 }
 
 function initSocket() {
-  socket = new WebSocket('wss://websocket-vavu.onrender.com');
+  socket = new WebSocket('wss://factionwarsbackend.onrender.com');
 
   socket.onopen = () => {
     socket.send(JSON.stringify({ type: 'register', name: playerName + (isDev ? '#1627' : '') }));
