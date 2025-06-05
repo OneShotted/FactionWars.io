@@ -11,6 +11,11 @@ let keys = {};
 
 const speed = 3;
 
+let world = {
+  width: 5000,
+  height: 5000
+};
+
 playButton.onclick = () => {
   const username = usernameInput.value.trim();
   if (!username) {
@@ -26,8 +31,8 @@ playButton.onclick = () => {
 
   player = {
     name: username,
-    x: canvas.width / 2,
-    y: canvas.height / 2,
+    x: world.width / 2,
+    y: world.height / 2,
     radius: 20,
     color: "#00ffcc"
   };
@@ -47,7 +52,6 @@ playButton.onclick = () => {
   requestAnimationFrame(gameLoop);
 };
 
-// Track key press/release
 document.addEventListener("keydown", (e) => {
   keys[e.key.toLowerCase()] = true;
 });
@@ -56,16 +60,39 @@ document.addEventListener("keyup", (e) => {
   keys[e.key.toLowerCase()] = false;
 });
 
-function drawPlayer(p) {
-  ctx.fillStyle = p.color;
+function drawPlayer() {
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+
+  ctx.fillStyle = player.color;
   ctx.beginPath();
-  ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+  ctx.arc(centerX, centerY, player.radius, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = "white";
   ctx.font = "16px sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(p.name, p.x, p.y - p.radius - 10);
+  ctx.fillText(player.name, centerX, centerY - player.radius - 10);
+}
+
+function drawWorld() {
+  // Simulate a world grid for reference
+  const offsetX = canvas.width / 2 - player.x;
+  const offsetY = canvas.height / 2 - player.y;
+
+  ctx.strokeStyle = "#333";
+  for (let x = 0; x < world.width; x += 100) {
+    ctx.beginPath();
+    ctx.moveTo(x + offsetX, 0 + offsetY);
+    ctx.lineTo(x + offsetX, world.height + offsetY);
+    ctx.stroke();
+  }
+  for (let y = 0; y < world.height; y += 100) {
+    ctx.beginPath();
+    ctx.moveTo(0 + offsetX, y + offsetY);
+    ctx.lineTo(world.width + offsetX, y + offsetY);
+    ctx.stroke();
+  }
 }
 
 function updatePlayer() {
@@ -76,9 +103,9 @@ function updatePlayer() {
   if (keys["a"]) player.x -= speed;
   if (keys["d"]) player.x += speed;
 
-  // Stay within canvas bounds
-  player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
-  player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
+  // Clamp to world bounds
+  player.x = Math.max(player.radius, Math.min(world.width - player.radius, player.x));
+  player.y = Math.max(player.radius, Math.min(world.height - player.radius, player.y));
 }
 
 function gameLoop() {
@@ -87,10 +114,10 @@ function gameLoop() {
   updatePlayer();
 
   if (player) {
-    drawPlayer(player);
+    drawWorld();
+    drawPlayer();
   }
 
   requestAnimationFrame(gameLoop);
 }
-
 
