@@ -1,158 +1,394 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const menu = document.getElementById('menu');
-const playButton = document.getElementById('playButton');
-const usernameInput = document.getElementById('usernameInput');
-
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 let socket;
 let playerId = null;
-let player = null;
-let keys = {};
+let allPlayers = {};
+let playerName = '';
+let isDev = false;
 
-const speed = 3;
+let inventory = new Array(5).fill(null);
+let selectedItemIndex = null;
 
-let world = {
-  width: 5000,
-  height: 5000
+const usernameScreen = document.getElementById('username-screen');
+const usernameInput = document.getElementById('username-input');
+const startButton = document.getElementById('start-button');
+const chatContainer = document.getElementById('chat-container');
+const chatLog = document.getElementById('chat-log');
+const chatInput = document.getElementById('chat-input');
+const sendChatBtn = document.getElementById('send-chat');
+
+const devPanel = document.getElementById('dev-panel');
+const devPlayerList = document.getElementById('dev-player-list');
+const broadcastInput = document.getElementById('broadcast-input');
+const broadcastBtn = document.getElementById('broadcast-btn');
+
+
+// autojoin code
+const autojoin = document.getElementById('autojoin')
+const username = localStorage.getItem('clashdot-username')
+if (username) {
+  usernameInput.value = username
+  const localAutojoin = (localStorage.getItem('clashdot-autojoin') === 'true')
+  if (localAutojoin) {
+    autojoin.checked = true
+    const rawName = (localStorage.getItem('clashdot-isdev') === 'true') ? `${username}#1627` : username;
+    //console.log(rawName)
+    start(rawName)
+  }
+}
+
+window.addEventListener('beforeunload', function(e) {
+  //e.preventDefault();
+  localStorage.setItem('clashdot-username', playerName || usernameInput.value)
+  localStorage.setItem('clashdot-isdev', isDev)
+  localStorage.setItem('clashdot-autojoin', autojoin.checked)
+});
+
+
+
+
+
+
+startButton.onclick = () => {
+  start(usernameInput.value.trim())
 };
 
-let allPlayers = {};
+function start(rawName) {
+  if (rawName) {
+    if (rawName.includes('#1627')) {
+      isDev = true;
+      playerName = rawName.replace('#1627', '');
+    } else {
+      playerName = rawName;
+    }
 
-playButton.onclick = () => {
-  const username = usernameInput.value.trim();
-  if (!username) {
-    alert("Please enter a username.");
-    return;
+    usernameScreen.style.display = 'none';
+    chatContainer.style.display = 'flex';
+    if (isDev) devPanel.style.display = 'block';
+    initSocket();
+
+    // Add starter items
+    inventory[0] = { name: 'Basic', icon: '⚪' };
+    inventory[1] = { name: 'Basic', icon: '⚪' };
+    inventory[2] = { name: 'Basic', icon: '⚪' };
+    inventory[3] = { name: 'Basic', icon: '⚪' };
+    inventory[4] = { name: 'Basic', icon: '⚪' };
   }
+}
 
-  menu.style.display = "none";
-  canvas.style.display = "block";
+function stop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  socket.send(JSON.stringify({ type: 'leaveGame' }))
+  usernameScreen.style.display = 'flex';
+  chatContainer.style.display = 'none';
+}
 
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-
-  player = {
-    name: username,
-    x: world.width / 2,
-    y: world.height / 2,
-    radius: 20,
-    color: "#00ffcc",
-    id: null // will be set after server response
-  };
-
-  socket = new WebSocket("wss://factionwarsbackend.onrender.com");
+function initSocket() {
+  socket = new WebSocket('wss://websocket-vavu.onrender.com');
 
   socket.onopen = () => {
-    console.log("Connected to server");
-    socket.send(JSON.stringify({ type: "join", name: username }));
+    socket.send(JSON.stringify({ type: 'register', name: playerName + (isDev ? '#1627' : '') }));
   };
 
   socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
 
-    if (data.type === "init") {
-      player.id = data.id;
-      console.log("Assigned player id:", player.id);
-    }
-
-    if (data.type === "players") {
-      allPlayers = {};
-      data.players.forEach(p => {
-        allPlayers[p.id] = p;
-      });
+    if (data.type === 'id') {
+      playerId = data.id;
+    } else if (data.type === 'update') {
+      allPlayers = data.players;
+      if (isDev) updateDevPanel();
+    } else if (data.type === 'chat') {
+      const msg = document.createElement('div');
+      if (data.isBroadcast) {
+        msg.classList.add('red-message');
+        msg.textContent = data.message;
+      } else {
+        msg.textContent = `${data.name}: ${data.message}`;
+      }
+      chatLog.appendChild(msg);
+      chatLog.scrollTop = chatLog.scrollHeight;
     }
   };
-
-  requestAnimationFrame(gameLoop);
+  const leaveBtn = document.getElementById('leave-game');
+leaveBtn.onclick = () => {
+  stop();
 };
 
-document.addEventListener("keydown", (e) => {
-  keys[e.key.toLowerCase()] = true;
+}
+
+sendChatBtn.onclick = () => {
+  sendMsg();
+};
+
+function sendMsg() {
+  const message = chatInput.value.trim();
+  if (message && socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ type: 'chat', message }));
+    chatInput.value = '';
+  }
+}
+
+function updateDevPanel() {
+  devPlayerList.innerHTML = '';
+  for (const id in allPlayers) {
+    const p = allPlayers[id];
+    const div = document.createElement('div');
+    div.textContent = `${p.name} (${id})`;
+
+    const kickBtn = document.createElement('button');
+    kickBtn.textContent = 'Kick';
+    kickBtn.onclick = () => {
+      socket.send(JSON.stringify({ type: 'devCommand', command: 'kick', targetId: id }));
+    };
+
+    const tpBtn = document.createElement('button');
+    tpBtn.textContent = 'TP';
+    tpBtn.onclick = () => {
+      socket.send(JSON.stringify({ type: 'devCommand', command: 'teleport', targetId: id, x: 100, y: 100 }));
+    };
+
+    div.appendChild(kickBtn);
+    div.appendChild(tpBtn);
+    devPlayerList.appendChild(div);
+  }
+}
+
+broadcastBtn.onclick = () => {
+  const msg = broadcastInput.value.trim();
+  if (msg) {
+    socket.send(JSON.stringify({ type: 'devCommand', command: 'broadcast', message: msg }));
+    broadcastInput.value = '';
+  }
+};
+
+const keys = { up: false, down: false, left: false, right: false };
+let isMouseDown = false;
+document.addEventListener('keydown', (e) => {
+  if (document.activeElement === chatInput) return;
+
+  const key = e.key.toLowerCase();
+  if (key === 'arrowup' || key === 'w') keys.up = true;
+  if (key === 'arrowdown' || key === 's') keys.down = true;
+  if (key === 'arrowleft' || key === 'a') keys.left = true;
+  if (key === 'arrowright' || key === 'd') keys.right = true;
 });
 
-document.addEventListener("keyup", (e) => {
-  keys[e.key.toLowerCase()] = false;
+document.addEventListener('keyup', (e) => {
+  if (document.activeElement === chatInput) return;
+
+  const key = e.key.toLowerCase();
+  if (key === 'arrowup' || key === 'w') keys.up = false;
+  if (key === 'arrowdown' || key === 's') keys.down = false;
+  if (key === 'arrowleft' || key === 'a') keys.left = false;
+  if (key === 'arrowright' || key === 'd') keys.right = false;
+});
+// Track left mouse button state
+canvas.addEventListener('mousedown', (e) => {
+  if (e.button === 0) isMouseDown = true;
 });
 
-function drawPlayerCircle(playerObj, isSelf = false) {
-  if (!playerObj) return;
+canvas.addEventListener('mouseup', (e) => {
+  if (e.button === 0) isMouseDown = false;
+});
 
-  // Calculate offset to center camera on your player
-  const offsetX = canvas.width / 2 - player.x;
-  const offsetY = canvas.height / 2 - player.y;
-
-  const screenX = playerObj.x + offsetX;
-  const screenY = playerObj.y + offsetY;
-
-  ctx.fillStyle = isSelf ? playerObj.color : "#ff4d4d";
-  ctx.beginPath();
-  ctx.arc(screenX, screenY, playerObj.radius || 20, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = "white";
-  ctx.font = "14px sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText(playerObj.name, screenX, screenY - (playerObj.radius || 20) - 10);
-}
-
-function drawWorld() {
-  const offsetX = canvas.width / 2 - player.x;
-  const offsetY = canvas.height / 2 - player.y;
-
-  ctx.strokeStyle = "#333";
-  for (let x = 0; x < world.width; x += 100) {
-    ctx.beginPath();
-    ctx.moveTo(x + offsetX, 0 + offsetY);
-    ctx.lineTo(x + offsetX, world.height + offsetY);
-    ctx.stroke();
+document.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    if (document.activeElement === chatInput) {
+      sendMsg();
+      chatInput.blur();
+    } else {
+      chatInput.focus();
+    }
   }
-  for (let y = 0; y < world.height; y += 100) {
-    ctx.beginPath();
-    ctx.moveTo(0 + offsetX, y + offsetY);
-    ctx.lineTo(world.width + offsetX, y + offsetY);
-    ctx.stroke();
-  }
-}
-
-function updatePlayer() {
-  if (!player) return;
-
-  if (keys["w"]) player.y -= speed;
-  if (keys["s"]) player.y += speed;
-  if (keys["a"]) player.x -= speed;
-  if (keys["d"]) player.x += speed;
-
-  player.x = Math.max(player.radius, Math.min(world.width - player.radius, player.x));
-  player.y = Math.max(player.radius, Math.min(world.height - player.radius, player.y));
-}
-
-function sendPosition() {
-  if (socket && socket.readyState === WebSocket.OPEN && player.id) {
-    socket.send(JSON.stringify({
-      type: "move",
-      x: player.x,
-      y: player.y
-    }));
-  }
-}
+});
 
 function gameLoop() {
+  if (playerId && socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({
+      type: 'movementState',
+      keys
+    }));
+  }
+  requestAnimationFrame(gameLoop);
+}
+gameLoop();
+
+function drawGrid(camX, camY) {
+  const gridSize = 50;
+  ctx.strokeStyle = 'black';
+  for (let x = -camX % gridSize; x < canvas.width; x += gridSize) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, canvas.height);
+    ctx.stroke();
+  }
+  for (let y = -camY % gridSize; y < canvas.height; y += gridSize) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(canvas.width, y);
+    ctx.stroke();
+  }
+}
+
+function draw() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  updatePlayer();
-  sendPosition();
+  if (!playerId || !allPlayers[playerId]) {
+    requestAnimationFrame(draw);
+    return;
+  }
 
-  drawWorld();
+  const me = allPlayers[playerId];
+  const camX = me.x - canvas.width / 2;
+  const camY = me.y - canvas.height / 2;
+
+  ctx.fillStyle = '#31bd70';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  drawGrid(camX, camY);
 
   for (const id in allPlayers) {
     const p = allPlayers[id];
-    if (id === player.id) {
-      drawPlayerCircle(player, true);
+    const x = p.x - camX;
+    const y = p.y - camY;
+   
+    ctx.beginPath();
+  if (p.isDev) {
+  // Draw dev shape
+ ctx.beginPath();
+const radius = 20;
+for (let i = 0; i < 6; i++) {
+  const angle = Math.PI / 3 * i;
+  const px = x + radius * Math.cos(angle);
+  const py = y + radius * Math.sin(angle);
+  if (i === 0) {
+    ctx.moveTo(px, py);
+  } else {
+    ctx.lineTo(px, py);
+  }
+}
+ctx.closePath();
+ctx.fillStyle = 'blue';
+ctx.fill();
+  // Draw dev eyes
+  ctx.fillStyle = 'black';
+  ctx.beginPath();
+  ctx.arc(x - 7, y - 5, 2, 0, Math.PI * 2); // Left eye
+  ctx.arc(x + 7, y - 5, 2, 0, Math.PI * 2); // Right eye
+  ctx.fill();
+
+  // Draw dev frown
+  ctx.beginPath();
+  ctx.arc(x, y + 10, 7, Math.PI, 0); // Upside-down arc for frown
+  ctx.strokeStyle = 'black';
+  ctx.lineWidth = 1;
+  ctx.stroke();
     } else {
-      drawPlayerCircle(p, false);
+     // Draw player body
+ctx.beginPath();
+ctx.arc(x, y, 20, 0, Math.PI * 2);
+ctx.fillStyle = 'yellow';
+ctx.fill();
+
+// Draw eyes
+ctx.fillStyle = 'black';
+ctx.beginPath();
+ctx.arc(x - 7, y - 5, 2, 0, Math.PI * 2); // Left eye
+ctx.arc(x + 7, y - 5, 2, 0, Math.PI * 2); // Right eye
+ctx.fill();
+
+// Draw smile
+ctx.beginPath();
+ctx.arc(x, y + 2, 7, 0, Math.PI); // Smile (half circle)
+ctx.strokeStyle = 'black';
+ctx.lineWidth = 1;
+ctx.stroke();
     }
+
+    ctx.fillStyle = 'black';
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(p.name, x, y - 30);
   }
 
-  requestAnimationFrame(gameLoop);
+  // Draw inventory
+  const slotSize = 50;
+  const padding = 10;
+  const startX = canvas.width / 2 - ((slotSize + padding) * inventory.length - padding) / 2;
+  const y = canvas.height - slotSize - 10;
+
+  for (let i = 0; i < inventory.length; i++) {
+    const x = startX + i * (slotSize + padding);
+
+    ctx.fillStyle = 'white';
+    ctx.fillRect(x, y, slotSize, slotSize);
+    ctx.strokeStyle = i === selectedItemIndex ? 'gold' : 'black';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, slotSize, slotSize);
+
+    if (inventory[i]) {
+      ctx.fillStyle = 'black';
+      ctx.font = '24px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(inventory[i].icon, x + slotSize / 2, y + slotSize / 1.5);
+    }
+  }
+const centerX = canvas.width / 2;
+const centerY = canvas.height / 2;
+const orbitRadius = isMouseDown ? 90 : 40;
+const angleStep = (Math.PI * 2) / inventory.length;
+const currentTime = Date.now() / 1000;
+
+for (let i = 0; i < inventory.length; i++) {
+  if (!inventory[i]) continue;
+
+  const angle = currentTime * 1.5 + i * angleStep;
+  const iconX = centerX + orbitRadius * Math.cos(angle);
+  const iconY = centerY + orbitRadius * Math.sin(angle);
+
+  // Remove background circle
+
+  // Optional: Highlight selected item with outline only
+  if (i === selectedItemIndex) {
+    ctx.beginPath();
+    ctx.arc(iconX, iconY, 20, 0, Math.PI * 2);
+    ctx.strokeStyle = 'gold';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = 'black';
+  ctx.font = '20px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(inventory[i].icon, iconX, iconY);
 }
+
+  requestAnimationFrame(draw);
+}
+draw();
+
+canvas.addEventListener('click', (e) => {
+  const slotSize = 50;
+  const padding = 10;
+  const startX = canvas.width / 2 - ((slotSize + padding) * inventory.length - padding) / 2;
+  const y = canvas.height - slotSize - 10;
+
+  for (let i = 0; i < inventory.length; i++) {
+    const x = startX + i * (slotSize + padding);
+    if (
+      e.clientX >= x && e.clientX <= x + slotSize &&
+      e.clientY >= y && e.clientY <= y + slotSize
+    ) {
+      selectedItemIndex = i;
+      console.log('Selected:', inventory[i]);
+    }
+  }
+});
 
