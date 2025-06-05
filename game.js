@@ -10,7 +10,7 @@ let allPlayers = {};
 let playerName = '';
 let isDev = false;
 
-// ——— INVENTORY (unchanged) ———
+// ——— INVENTORY ———
 let inventory = new Array(5).fill(null);
 let selectedItemIndex = null;
 
@@ -28,10 +28,10 @@ const devPlayerList = document.getElementById('dev-player-list');
 const broadcastInput = document.getElementById('broadcast-input');
 const broadcastBtn = document.getElementById('broadcast-btn');
 
-// ——— Faction State (NEW) ———
+// ——— Faction State ———
 let localFaction = 'red'; // default
 
-// ——— Autojoin Code (unchanged except setting faction from localStorage) ———
+// ——— Autojoin Code ———
 const autojoin = document.getElementById('autojoin');
 const storedName = localStorage.getItem('factionwars-username');
 const storedFaction = localStorage.getItem('factionwars-faction');
@@ -39,7 +39,7 @@ if (storedName) {
   usernameInput.value = storedName;
   if (storedFaction) {
     localFaction = storedFaction;
-    // Pre-check the matching radio button:
+    // Pre-check the matching faction radio button:
     const factionRadios = document.getElementsByName('faction');
     factionRadios.forEach((r) => {
       if (r.value === localFaction) r.checked = true;
@@ -54,6 +54,7 @@ if (storedName) {
     start(rawName);
   }
 }
+
 window.addEventListener('beforeunload', function() {
   localStorage.setItem('factionwars-username', playerName || usernameInput.value);
   localStorage.setItem('factionwars-isdev', isDev);
@@ -69,28 +70,29 @@ startButton.onclick = () => {
 function start(rawName) {
   if (!rawName) return;
 
-  // —– Check for “#1627” in rawName to identify a dev or normal user
+  // Check for “#1627” in rawName to identify dev or normal user
   if (rawName.includes('#1627')) {
     isDev = true;
     playerName = rawName.replace('#1627', '');
   } else {
+    isDev = false;
     playerName = rawName;
   }
 
-  // —– Read which faction radio is checked (NEW)
+  // Read which faction radio is checked
   const factionRadios = document.getElementsByName('faction');
   factionRadios.forEach((r) => {
-    if (r.checked) localFaction = r.value; 
+    if (r.checked) localFaction = r.value;
   });
 
-  // —– Hide the username screen and show chat & dev panel
+  // Hide username screen, show chat and dev panel if dev
   usernameScreen.style.display = 'none';
   chatContainer.style.display = 'flex';
-  if (isDev) devPanel.style.display = 'block';
+  devPanel.style.display = isDev ? 'block' : 'none';
 
   initSocket();
 
-  // —– Give starter items (unchanged)
+  // Starter items in inventory
   inventory[0] = { name: 'Basic', icon: '⚪' };
   inventory[1] = { name: 'Basic', icon: '⚪' };
   inventory[2] = { name: 'Basic', icon: '⚪' };
@@ -102,9 +104,14 @@ function stop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (socket && socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({ type: 'leaveGame' }));
+    socket.close();
   }
   usernameScreen.style.display = 'flex';
   chatContainer.style.display = 'none';
+  devPanel.style.display = 'none';
+  playerId = null;
+  allPlayers = {};
+  isDev = false;
 }
 
 // ——— Initialize WebSocket ———
@@ -112,7 +119,6 @@ function initSocket() {
   socket = new WebSocket('wss://factionwarsbackend.onrender.com');
 
   socket.onopen = () => {
-    // Send register payload with name, dev‐tag, and faction (NEW)
     socket.send(JSON.stringify({
       type: 'register',
       name: playerName + (isDev ? '#1627' : ''),
@@ -133,7 +139,7 @@ function initSocket() {
     else if (data.type === 'chat') {
       const msg = document.createElement('div');
       if (data.isBroadcast) {
-        msg.classList.add('red-message'); // broadcast in red text
+        msg.classList.add('red-message');
         msg.textContent = data.message;
       } else {
         msg.textContent = `${data.name}: ${data.message}`;
@@ -142,10 +148,13 @@ function initSocket() {
       chatLog.scrollTop = chatLog.scrollHeight;
     }
     else if (data.type === 'kicked') {
-      // optional: handle “kicked by dev” logic here
       stop();
       alert('You were kicked! Reason: ' + (data.reason || 'No reason provided.'));
     }
+  };
+
+  socket.onclose = () => {
+    // Handle socket close if needed
   };
 
   document.getElementById('leave-game').onclick = () => {
@@ -153,7 +162,7 @@ function initSocket() {
   };
 }
 
-// ——— Sending chat (unchanged) ———
+// ——— Sending chat ———
 sendChatBtn.onclick = () => {
   sendMsg();
 };
@@ -165,7 +174,7 @@ function sendMsg() {
   }
 }
 
-// ——— Developer Panel Logic (unchanged) ———
+// ——— Developer Panel Logic ———
 function updateDevPanel() {
   devPlayerList.innerHTML = '';
   for (const id in allPlayers) {
@@ -212,7 +221,7 @@ broadcastBtn.onclick = () => {
   }
 };
 
-// ——— Input (WS movement) logic (unchanged) ———
+// ——— Input (WS movement) logic ———
 const keys = { up: false, down: false, left: false, right: false };
 let isMouseDown = false;
 
@@ -252,7 +261,7 @@ document.addEventListener('keypress', (e) => {
   }
 });
 
-// ——— Game Loop (unchanged) ———
+// ——— Game Loop ———
 function gameLoop() {
   if (playerId && socket && socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({
@@ -307,8 +316,8 @@ function draw() {
     const x = p.x - camX;
     const y = p.y - camY;
 
-    // If developer, draw hexagon + frown (unchanged)
     if (p.isDev) {
+      // Dev player hexagon + face
       const radius = 20;
       ctx.beginPath();
       for (let i = 0; i < 6; i++) {
@@ -335,17 +344,11 @@ function draw() {
       ctx.strokeStyle = 'black';
       ctx.lineWidth = 1;
       ctx.stroke();
-    }
-    else {
-      // Non‐dev players: fill‐color based on faction (NEW)
-      if (p.faction === 'red') {
-        ctx.fillStyle = '#e74c3c';
-      } else if (p.faction === 'blue') {
-        ctx.fillStyle = '#3498db';
-      } else {
-        // default fallback
-        ctx.fillStyle = 'yellow';
-      }
+    } else {
+      // Colored players by faction
+      if (p.faction === 'red') ctx.fillStyle = '#e74c3c';
+      else if (p.faction === 'blue') ctx.fillStyle = '#3498db';
+      else ctx.fillStyle = 'yellow';
 
       // Draw player circle
       ctx.beginPath();
@@ -367,14 +370,14 @@ function draw() {
       ctx.stroke();
     }
 
-    // Draw the player’s name above
+    // Draw name above player
     ctx.fillStyle = 'black';
     ctx.font = '14px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(p.name, x, y - 30);
   }
 
-  // Draw inventory/UFO UI (unchanged)
+  // Draw inventory slots
   const slotSize = 50;
   const padding = 10;
   const startX = canvas.width / 2 - ((slotSize + padding) * inventory.length - padding) / 2;
@@ -396,6 +399,7 @@ function draw() {
     }
   }
 
+  // Draw orbiting inventory icons around center
   const centerX = canvas.width / 2;
   const centerY = canvas.height / 2;
   const orbitRadius = isMouseDown ? 90 : 40;
@@ -427,7 +431,7 @@ function draw() {
 }
 draw();
 
-// ——— Slot Click Handler (unchanged) ———
+// ——— Slot Click Handler ———
 canvas.addEventListener('click', (e) => {
   const slotSize = 50;
   const padding = 10;
@@ -442,8 +446,10 @@ canvas.addEventListener('click', (e) => {
     ) {
       selectedItemIndex = i;
       console.log('Selected:', inventory[i]);
+      break; // Only select one slot per click
     }
   }
 });
+
 
 
