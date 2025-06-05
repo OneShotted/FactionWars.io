@@ -11,18 +11,17 @@ html, body {
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.85);
   padding: 30px;
   border-radius: 20px;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
   color: white;
 }
 
 #username {
   padding: 10px;
   font-size: 18px;
-  width: 80%;
-  max-width: 300px;
+  width: 250px;
   margin-bottom: 20px;
   border-radius: 10px;
   border: none;
@@ -37,7 +36,6 @@ html, body {
 
 .faction-button {
   padding: 10px 20px;
-  margin: 10px;
   font-size: 20px;
   cursor: pointer;
   border: none;
