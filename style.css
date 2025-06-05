@@ -1,52 +1,10 @@
-html, body {
-  height: 100%;
+body, html {
   margin: 0;
   padding: 0;
-  font-family: sans-serif;
+  overflow: hidden;
+}
+canvas {
+  display: block;
+  background-color: #111;
 }
 
-#join-screen {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  background: rgba(0, 0, 0, 0.85);
-  padding: 30px;
-  border-radius: 20px;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
-  color: white;
-}
-
-#username {
-  padding: 10px;
-  font-size: 18px;
-  width: 250px;
-  margin-bottom: 20px;
-  border-radius: 10px;
-  border: none;
-}
-
-#faction-selection {
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-  flex-wrap: wrap;
-}
-
-.faction-button {
-  padding: 10px 20px;
-  font-size: 20px;
-  cursor: pointer;
-  border: none;
-  border-radius: 10px;
-  transition: 0.2s ease;
-}
-
-.faction-button:hover {
-  transform: scale(1.1);
-}
-
-.fire { background-color: #e63946; color: white; }
-.ice { background-color: #1d3557; color: white; }
-.shadow { background-color: #6a4c93; color: white; }
