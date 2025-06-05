@@ -39,7 +39,6 @@ if (storedName) {
   usernameInput.value = storedName;
   if (storedFaction) {
     localFaction = storedFaction;
-    // Pre-check the matching faction radio button:
     const factionRadios = document.getElementsByName('faction');
     factionRadios.forEach((r) => {
       if (r.value === localFaction) r.checked = true;
@@ -70,7 +69,6 @@ startButton.onclick = () => {
 function start(rawName) {
   if (!rawName) return;
 
-  // Check for “#1627” in rawName to identify dev or normal user
   if (rawName.includes('#1627')) {
     isDev = true;
     playerName = rawName.replace('#1627', '');
@@ -79,20 +77,18 @@ function start(rawName) {
     playerName = rawName;
   }
 
-  // Read which faction radio is checked
   const factionRadios = document.getElementsByName('faction');
   factionRadios.forEach((r) => {
     if (r.checked) localFaction = r.value;
   });
 
-  // Hide username screen, show chat and dev panel if dev
   usernameScreen.style.display = 'none';
   chatContainer.style.display = 'flex';
   devPanel.style.display = isDev ? 'block' : 'none';
 
   initSocket();
 
-  // Starter items in inventory
+  // Starter inventory items
   inventory[0] = { name: 'Basic', icon: '⚪' };
   inventory[1] = { name: 'Basic', icon: '⚪' };
   inventory[2] = { name: 'Basic', icon: '⚪' };
@@ -264,9 +260,11 @@ document.addEventListener('keypress', (e) => {
 // ——— Game Loop ———
 function gameLoop() {
   if (playerId && socket && socket.readyState === WebSocket.OPEN) {
+    // Send movement keys AND current inventory to server
     socket.send(JSON.stringify({
       type: 'movementState',
-      keys
+      keys,
+      inventory // send current inventory so server can broadcast to others
     }));
   }
   requestAnimationFrame(gameLoop);
@@ -310,7 +308,7 @@ function draw() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   drawGrid(camX, camY);
 
-  // Draw all players
+  // Draw all players with orbiting inventory
   for (const id in allPlayers) {
     const p = allPlayers[id];
     const x = p.x - camX;
@@ -375,9 +373,29 @@ function draw() {
     ctx.font = '14px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(p.name, x, y - 30);
+
+    // Draw orbiting inventory items for this player if available
+    if (p.inventory && Array.isArray(p.inventory)) {
+      const orbitRadius = 40;
+      const angleStep = (Math.PI * 2) / p.inventory.length;
+      const currentTime = Date.now() / 1000;
+
+      for (let i = 0; i < p.inventory.length; i++) {
+        if (!p.inventory[i]) continue;
+        const angle = currentTime * 1.5 + i * angleStep;
+        const iconX = x + orbitRadius * Math.cos(angle);
+        const iconY = y + orbitRadius * Math.sin(angle);
+
+        ctx.fillStyle = 'black';
+        ctx.font = '20px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(p.inventory[i].icon, iconX, iconY);
+      }
+    }
   }
 
-  // Draw inventory slots
+  // Draw your local inventory UI slots at bottom center
   const slotSize = 50;
   const padding = 10;
   const startX = canvas.width / 2 - ((slotSize + padding) * inventory.length - padding) / 2;
@@ -399,7 +417,7 @@ function draw() {
     }
   }
 
-  // Draw orbiting inventory icons around center
+  // Draw your orbiting inventory icons around center of screen
   const centerX = canvas.width / 2;
   const centerY = canvas.height / 2;
   const orbitRadius = isMouseDown ? 90 : 40;
@@ -446,7 +464,7 @@ canvas.addEventListener('click', (e) => {
     ) {
       selectedItemIndex = i;
       console.log('Selected:', inventory[i]);
-      break; // Only select one slot per click
+      break;
     }
   }
 });
