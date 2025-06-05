@@ -4,7 +4,7 @@ const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-let socket = new WebSocket("wss://factionwars-backend.onrender.com");
+let socket = new WebSocket("wss://factionwarsbackend.onrender.com");
 
 socket.onopen = () => {
   console.log("Connected to server");
