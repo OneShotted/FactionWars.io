@@ -2,9 +2,46 @@ body, html {
   margin: 0;
   padding: 0;
   overflow: hidden;
-}
-canvas {
-  display: block;
   background-color: #111;
+  font-family: sans-serif;
 }
 
+canvas {
+  display: block;
+}
+
+#menu {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(20, 20, 20, 0.9);
+  padding: 30px;
+  border-radius: 12px;
+  text-align: center;
+  color: white;
+}
+
+#usernameInput {
+  padding: 10px;
+  font-size: 16px;
+  width: 200px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  border: none;
+}
+
+#playButton {
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 8px;
+  border: none;
+  background-color: #3498db;
+  color: white;
+  transition: background 0.3s ease;
+}
+
+#playButton:hover {
+  background-color: #2980b9;
+}
