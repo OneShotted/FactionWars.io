@@ -1,23 +1,13 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>FactionWars.io</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="join-screen">
-    <h1>FactionWars.io</h1>
-    <input id="username" placeholder="Enter your username" />
-    <div id="faction-selection">
-      <button data-faction="Fire" class="faction-button fire">🔥 Fire</button>
-      <button data-faction="Ice" class="faction-button ice">❄️ Ice</button>
-      <button data-faction="Shadow" class="faction-button shadow">🌑 Shadow</button>
-    </div>
-  </div>
-
-  <canvas id="gameCanvas" style="display:none;"></canvas>
-
+  <canvas id="gameCanvas"></canvas>
   <script src="game.js"></script>
 </body>
 </html>
