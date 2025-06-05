@@ -16,6 +16,8 @@ let world = {
   height: 5000
 };
 
+let allPlayers = {};
+
 playButton.onclick = () => {
   const username = usernameInput.value.trim();
   if (!username) {
@@ -26,16 +28,16 @@ playButton.onclick = () => {
   menu.style.display = "none";
   canvas.style.display = "block";
 
-  // Set canvas size to full world size
-  canvas.width = world.width;
-  canvas.height = world.height;
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 
   player = {
     name: username,
     x: world.width / 2,
     y: world.height / 2,
     radius: 20,
-    color: "#00ffcc"
+    color: "#00ffcc",
+    id: null // will be set after server response
   };
 
   socket = new WebSocket("wss://factionwarsbackend.onrender.com");
@@ -47,14 +49,18 @@ playButton.onclick = () => {
 
   socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
-    console.log(data);
 
-    // Save player id on init
     if (data.type === "init") {
-      playerId = data.id;
+      player.id = data.id;
+      console.log("Assigned player id:", player.id);
     }
 
-    // TODO: handle other players update here
+    if (data.type === "players") {
+      allPlayers = {};
+      data.players.forEach(p => {
+        allPlayers[p.id] = p;
+      });
+    }
   };
 
   requestAnimationFrame(gameLoop);
@@ -71,30 +77,39 @@ document.addEventListener("keyup", (e) => {
 function drawPlayerCircle(playerObj, isSelf = false) {
   if (!playerObj) return;
 
+  // Calculate offset to center camera on your player
+  const offsetX = canvas.width / 2 - player.x;
+  const offsetY = canvas.height / 2 - player.y;
+
+  const screenX = playerObj.x + offsetX;
+  const screenY = playerObj.y + offsetY;
+
   ctx.fillStyle = isSelf ? playerObj.color : "#ff4d4d";
   ctx.beginPath();
-  ctx.arc(playerObj.x, playerObj.y, playerObj.radius || 20, 0, Math.PI * 2);
+  ctx.arc(screenX, screenY, playerObj.radius || 20, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = "white";
   ctx.font = "14px sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(playerObj.name, playerObj.x, playerObj.y - (playerObj.radius || 20) - 10);
+  ctx.fillText(playerObj.name, screenX, screenY - (playerObj.radius || 20) - 10);
 }
 
 function drawWorld() {
-  ctx.strokeStyle = "#333";
+  const offsetX = canvas.width / 2 - player.x;
+  const offsetY = canvas.height / 2 - player.y;
 
+  ctx.strokeStyle = "#333";
   for (let x = 0; x < world.width; x += 100) {
     ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, world.height);
+    ctx.moveTo(x + offsetX, 0 + offsetY);
+    ctx.lineTo(x + offsetX, world.height + offsetY);
     ctx.stroke();
   }
   for (let y = 0; y < world.height; y += 100) {
     ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(world.width, y);
+    ctx.moveTo(0 + offsetX, y + offsetY);
+    ctx.lineTo(world.width + offsetX, y + offsetY);
     ctx.stroke();
   }
 }
@@ -107,12 +122,12 @@ function updatePlayer() {
   if (keys["a"]) player.x -= speed;
   if (keys["d"]) player.x += speed;
 
-  // Clamp to world bounds
   player.x = Math.max(player.radius, Math.min(world.width - player.radius, player.x));
   player.y = Math.max(player.radius, Math.min(world.height - player.radius, player.y));
+}
 
-  // Send updated position to server
-  if (socket && socket.readyState === WebSocket.OPEN) {
+function sendPosition() {
+  if (socket && socket.readyState === WebSocket.OPEN && player.id) {
     socket.send(JSON.stringify({
       type: "move",
       x: player.x,
@@ -124,13 +139,20 @@ function updatePlayer() {
 function gameLoop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+  updatePlayer();
+  sendPosition();
+
   drawWorld();
 
-  updatePlayer();
-
-  if (player) {
-    drawPlayerCircle(player, true);
+  for (const id in allPlayers) {
+    const p = allPlayers[id];
+    if (id === player.id) {
+      drawPlayerCircle(player, true);
+    } else {
+      drawPlayerCircle(p, false);
+    }
   }
 
   requestAnimationFrame(gameLoop);
 }
+
