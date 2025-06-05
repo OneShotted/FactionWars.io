@@ -182,4 +182,23 @@ body {
   cursor: grab;
 }
 
+/* NEW: Faction Selection Styling */
+#faction-selection {
+  margin: 10px;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+#faction-selection label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+#faction-selection input[type="radio"] {
+  margin-right: 6px;
+}
+.faction-label {
+  font-weight: bold;
+  font-size: 16px;
+}
 
