@@ -7,6 +7,9 @@ const usernameInput = document.getElementById('usernameInput');
 let socket;
 let playerId = null;
 let player = null;
+let keys = {};
+
+const speed = 3;
 
 playButton.onclick = () => {
   const username = usernameInput.value.trim();
@@ -44,22 +47,44 @@ playButton.onclick = () => {
   requestAnimationFrame(gameLoop);
 };
 
+// Track key press/release
+document.addEventListener("keydown", (e) => {
+  keys[e.key.toLowerCase()] = true;
+});
+
+document.addEventListener("keyup", (e) => {
+  keys[e.key.toLowerCase()] = false;
+});
+
 function drawPlayer(p) {
-  // Draw the circle
   ctx.fillStyle = p.color;
   ctx.beginPath();
   ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
   ctx.fill();
 
-  // Draw the name
   ctx.fillStyle = "white";
   ctx.font = "16px sans-serif";
   ctx.textAlign = "center";
   ctx.fillText(p.name, p.x, p.y - p.radius - 10);
 }
 
+function updatePlayer() {
+  if (!player) return;
+
+  if (keys["w"]) player.y -= speed;
+  if (keys["s"]) player.y += speed;
+  if (keys["a"]) player.x -= speed;
+  if (keys["d"]) player.x += speed;
+
+  // Stay within canvas bounds
+  player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
+  player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
+}
+
 function gameLoop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  updatePlayer();
 
   if (player) {
     drawPlayer(player);
