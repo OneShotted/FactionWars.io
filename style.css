@@ -1,8 +1,38 @@
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: sans-serif;
+}
+
 #join-screen {
   position: absolute;
-  top: 30%;
-  width: 100%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   text-align: center;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  color: white;
+}
+
+#username {
+  padding: 10px;
+  font-size: 18px;
+  width: 80%;
+  max-width: 300px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+  border: none;
+}
+
+#faction-selection {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
 }
 
 .faction-button {
@@ -12,8 +42,13 @@
   cursor: pointer;
   border: none;
   border-radius: 10px;
+  transition: 0.2s ease;
 }
 
-.fire { background-color: red; color: white; }
-.ice { background-color: blue; color: white; }
-.shadow { background-color: purple; color: white; }
+.faction-button:hover {
+  transform: scale(1.1);
+}
+
+.fire { background-color: #e63946; color: white; }
+.ice { background-color: #1d3557; color: white; }
+.shadow { background-color: #6a4c93; color: white; }
