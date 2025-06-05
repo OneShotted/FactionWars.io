@@ -7,7 +7,16 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <canvas id="gameCanvas"></canvas>
+  <!-- Menu Screen -->
+  <div id="menu">
+    <h1>FactionWars.io</h1>
+    <input type="text" id="usernameInput" placeholder="Enter your username" />
+    <button id="playButton">Play</button>
+  </div>
+
+  <!-- Game Canvas (hidden initially) -->
+  <canvas id="gameCanvas" style="display: none;"></canvas>
+
   <script src="game.js"></script>
 </body>
 </html>
