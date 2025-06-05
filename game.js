@@ -1,29 +1,24 @@
-let socket;
-let playerId = null;
-let allPlayers = {};
-let playerFaction = '';
-let playerName = '';
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
 
-document.querySelectorAll('.faction-button').forEach(button => {
-  button.addEventListener('click', () => {
-    playerFaction = button.dataset.faction;
-    playerName = document.getElementById('username').value.trim();
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-    if (!playerName) return alert("Enter a username!");
+let socket = new WebSocket("wss://factionwars-backend.onrender.com");
 
-    // Connect to server
-    socket = new WebSocket('wss://factionwarsbackend.onrender.com');
+socket.onopen = () => {
+  console.log("Connected to server");
+  socket.send(JSON.stringify({ type: "join", name: "Player" + Math.floor(Math.random() * 1000) }));
+};
 
-    socket.onopen = () => {
-      socket.send(JSON.stringify({
-        type: 'join',
-        name: playerName,
-        faction: playerFaction
-      }));
-    };
+socket.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log(data);
+};
 
-    document.getElementById('join-screen').style.display = 'none';
-    document.getElementById('gameCanvas').style.display = 'block';
-    initGameLoop();
-  });
-});
+function gameLoop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  requestAnimationFrame(gameLoop);
+}
+gameLoop();
+
