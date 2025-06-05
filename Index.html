@@ -3,20 +3,75 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>FactionWars.io</title>
+  <title>Clashdot.io!</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- Menu Screen -->
-  <div id="menu">
-    <h1>FactionWars.io</h1>
-    <input type="text" id="usernameInput" placeholder="Enter your username" />
-    <button id="playButton">Play</button>
+  <div id="username-screen">
+    <h1 id="game-title">Clashdot.io</h1>
+    <input id="username-input" placeholder="Username..." />
+    <button id="start-button">Start</button>
+    <label><input type="checkbox" id="autojoin">Autojoin</label>
   </div>
 
-  <!-- Game Canvas (hidden initially) -->
-  <canvas id="gameCanvas" style="display: none;"></canvas>
+  <canvas id="gameCanvas"></canvas>
+
+  <div id="chat-container">
+    <div id="chat-log"></div>
+    <input id="chat-input" placeholder="Type a message..." />
+    <button id="send-chat">Send</button>
+  </div>
+<!-- Inventory Panel -->
+<div id="inventory-panel" style="display: none;">
+  <h2>Inventory</h2>
+  <div id="inventory-grid"></div>
+</div>
+
+  <div id="dev-panel">
+    <h2>Developer Panel</h2>
+    <div id="dev-player-list"></div>
+    <div>
+      <input id="broadcast-input" placeholder="Broadcast message..." />
+      <button id="broadcast-btn">Send</button>
+    </div>
+  </div>
+
+  <div id='menu-bar'>
+<button id="changelog-toggle" class='menu-button'>Changelog</button>
+    
+    <a id="discord-button" href="https://discord.gg/mCbW7cUd9C" target="_blank">
+      <img src="https://img.icons8.com/ios-filled/50/000000/discord-logo.png" alt="Discord" />
+    </a>
+
+    <button id='leave-game' class='menu-button'>Leave</button>
+  </div>
+
+  <!-- Changelog (Hidden by Default) -->
+  <div id="changelog" style="display: none;">
+    <h2>Changelog</h2>
+    <ul>
+      <li>A1.6 - Introduced the start of game making - added items, an inventory, and more!</li>
+      <li>A1.5 - We Introduced a new developer to the team! - Imix! Welcome to the team!!</li>
+      <li>A1.4 - Added developer powers.</li>
+      <li>A1.3 - Improved chat system/fixed bugs with chatting</li>
+      <li>A1.2 - Player movement with Arrow Keys and WASD</li>
+      <li>A1.1 - Changelog display added</li>
+      <li>A1.0 - Initial Alpha release</li>
+    </ul>
+  </div>
+
+  <script>
+    document.getElementById('changelog-toggle').addEventListener('click', () => {
+      const log = document.getElementById('changelog');
+      const toggleBtn = document.getElementById('changelog-toggle');
+      const isVisible = log.style.display === 'block';
+      log.style.display = isVisible ? 'none' : 'block';
+      toggleBtn.textContent = isVisible ? 'Changelog' : 'Hide Changelog';
+    });
+  </script>
 
   <script src="game.js"></script>
 </body>
 </html>
+
+
