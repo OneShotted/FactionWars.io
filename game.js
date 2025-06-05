@@ -6,6 +6,7 @@ const usernameInput = document.getElementById('usernameInput');
 
 let socket;
 let playerId = null;
+let player = null;
 
 playButton.onclick = () => {
   const username = usernameInput.value.trim();
@@ -19,6 +20,14 @@ playButton.onclick = () => {
 
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
+
+  player = {
+    name: username,
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    radius: 20,
+    color: "#00ffcc"
+  };
 
   socket = new WebSocket("wss://factionwarsbackend.onrender.com");
 
@@ -35,9 +44,28 @@ playButton.onclick = () => {
   requestAnimationFrame(gameLoop);
 };
 
+function drawPlayer(p) {
+  // Draw the circle
+  ctx.fillStyle = p.color;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Draw the name
+  ctx.fillStyle = "white";
+  ctx.font = "16px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(p.name, p.x, p.y - p.radius - 10);
+}
+
 function gameLoop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  // Add drawing logic here (player, mobs, etc.)
+
+  if (player) {
+    drawPlayer(player);
+  }
+
   requestAnimationFrame(gameLoop);
 }
+
 
