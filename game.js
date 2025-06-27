@@ -31,7 +31,7 @@ document.addEventListener('keydown', (e) => keysPressed[e.key.toLowerCase()] = t
 document.addEventListener('keyup', (e) => keysPressed[e.key.toLowerCase()] = false);
 
 // WebSocket
-const socket = new WebSocket('wss://YOUR-RENDER-URL.onrender.com');
+const socket = new WebSocket('wss://factionwarsbackend.onrender.com');
 let playerId = null;
 
 socket.addEventListener('open', () => {
