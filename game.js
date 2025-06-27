@@ -10,7 +10,7 @@ scene.add(ambientLight);
 
 // Textured Floor
 const loader = new THREE.TextureLoader();
-const grassTexture = loader.load('https://i.imgur.com/8w0IhOD.jpg');
+const grassTexture = loader.load('https://threejsfundamentals.org/threejs/resources/images/grass.jpg');
 grassTexture.wrapS = THREE.RepeatWrapping;
 grassTexture.wrapT = THREE.RepeatWrapping;
 grassTexture.repeat.set(200, 200);
