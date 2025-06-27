@@ -4,28 +4,37 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 
 const scene = new THREE.Scene();
 
-// Green grass floor
-const floorGeometry = new THREE.PlaneGeometry(5000, 5000);
-const floorMaterial = new THREE.MeshBasicMaterial({ color: 0x228B22 });
+// Lighting
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+scene.add(ambientLight);
+
+// Textured Floor
+const loader = new THREE.TextureLoader();
+const grassTexture = loader.load('https://i.imgur.com/8w0IhOD.jpg');
+grassTexture.wrapS = THREE.RepeatWrapping;
+grassTexture.wrapT = THREE.RepeatWrapping;
+grassTexture.repeat.set(200, 200);
+
+const floorGeometry = new THREE.PlaneGeometry(10000, 10000);
+const floorMaterial = new THREE.MeshStandardMaterial({ map: grassTexture });
 const floor = new THREE.Mesh(floorGeometry, floorMaterial);
 floor.rotation.x = -Math.PI / 2;
 scene.add(floor);
 
 // Camera
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.y = 15;
-camera.position.z = 20;
+camera.position.set(0, 10, -15);
 
 // Local player
 const playerGeometry = new THREE.BoxGeometry(2, 2, 2);
-const playerMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+const playerMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
 const localPlayer = new THREE.Mesh(playerGeometry, playerMaterial);
 scene.add(localPlayer);
 
 // Other players
 const otherPlayers = {};
 
-// Movement
+// Movement state
 const keysPressed = {};
 document.addEventListener('keydown', (e) => keysPressed[e.key.toLowerCase()] = true);
 document.addEventListener('keyup', (e) => keysPressed[e.key.toLowerCase()] = false);
@@ -50,14 +59,14 @@ socket.addEventListener('message', (event) => {
       if (id === playerId) return;
 
       if (!otherPlayers[id]) {
-        const mesh = new THREE.Mesh(playerGeometry, new THREE.MeshBasicMaterial({ color: 0x00aaff }));
+        const mesh = new THREE.Mesh(playerGeometry, new THREE.MeshStandardMaterial({ color: 0x00aaff }));
         scene.add(mesh);
         otherPlayers[id] = mesh;
       }
       otherPlayers[id].position.set(pos.x, pos.y, pos.z);
+      otherPlayers[id].rotation.y = pos.rotY || 0;
     });
 
-    // Remove disconnected players
     Object.keys(otherPlayers).forEach((id) => {
       if (!data.players[id]) {
         scene.remove(otherPlayers[id]);
@@ -67,30 +76,43 @@ socket.addEventListener('message', (event) => {
   }
 });
 
-// Update loop
+// Animate loop
 const clock = new THREE.Clock();
+let rotY = 0;
 
 function animate() {
   requestAnimationFrame(animate);
-
   const delta = clock.getDelta();
-  const speed = 15;
+  const moveSpeed = 20 * delta;
+  const rotSpeed = 2.5 * delta;
 
-  if (keysPressed['w']) localPlayer.position.z -= speed * delta;
-  if (keysPressed['s']) localPlayer.position.z += speed * delta;
-  if (keysPressed['a']) localPlayer.position.x -= speed * delta;
-  if (keysPressed['d']) localPlayer.position.x += speed * delta;
+  // Movement: rotate + forward/backward
+  if (keysPressed['a']) rotY += rotSpeed;
+  if (keysPressed['d']) rotY -= rotSpeed;
 
-  camera.position.x = localPlayer.position.x;
-  camera.position.z = localPlayer.position.z + 20;
+  const forward = new THREE.Vector3(Math.sin(rotY), 0, Math.cos(rotY)).normalize();
+  if (keysPressed['w']) {
+    localPlayer.position.add(forward.clone().multiplyScalar(moveSpeed));
+  }
+  if (keysPressed['s']) {
+    localPlayer.position.add(forward.clone().multiplyScalar(-moveSpeed));
+  }
+
+  localPlayer.rotation.y = rotY;
+
+  // Third-person camera
+  const camOffset = forward.clone().multiplyScalar(-15).add(new THREE.Vector3(0, 10, 0));
+  camera.position.copy(localPlayer.position.clone().add(camOffset));
   camera.lookAt(localPlayer.position);
 
+  // Send position
   socket.send(JSON.stringify({
     type: 'move',
     position: {
       x: localPlayer.position.x,
       y: localPlayer.position.y,
-      z: localPlayer.position.z
+      z: localPlayer.position.z,
+      rotY: rotY
     }
   }));
 
