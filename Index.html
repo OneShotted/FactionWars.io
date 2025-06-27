@@ -3,82 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>FactionWars.io</title>
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden;
-      background: #1a1a1a;
-      color: white;
-      font-family: Arial, sans-serif;
-    }
-
-    #ui-container {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center;
-    }
-
-    #ui-container input, .faction-button, #play-button {
-      padding: 12px 20px;
-      margin: 10px;
-      font-size: 18px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-
-    #username-input {
-      width: 250px;
-    }
-
-    .faction-button {
-      background-color: #444;
-      color: white;
-      transition: 0.2s;
-    }
-
-    .faction-button.selected {
-      outline: 3px solid white;
-    }
-
-    #fire-button {
-      background-color: #ff4c4c;
-    }
-
-    #ice-button {
-      background-color: #4cc9ff;
-    }
-
-    #play-button {
-      background-color: #00cc66;
-      color: white;
-    }
-
-    canvas {
-      display: block;
-    }
-  </style>
+  <title>MMO 3D Game</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
-
-  <div id="ui-container">
-    <h1>FactionWars.io</h1>
-    <input type="text" id="username-input" placeholder="Enter username" />
-
-    <div>
-      <button id="fire-button" class="faction-button">🔥 Fire</button>
-      <button id="ice-button" class="faction-button">❄️ Ice</button>
-    </div>
-
-    <button id="play-button">Play</button>
-  </div>
-
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js"></script>
   <script src="game.js"></script>
 </body>
 </html>
