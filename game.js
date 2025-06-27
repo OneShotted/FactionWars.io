@@ -1,131 +1,101 @@
 const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+const renderer = new THREE.WebGLRenderer({ canvas });
+renderer.setSize(window.innerWidth, window.innerHeight);
 
-let selectedFaction = null;
-let socket = null;
+const scene = new THREE.Scene();
+
+// Green grass floor
+const floorGeometry = new THREE.PlaneGeometry(5000, 5000);
+const floorMaterial = new THREE.MeshBasicMaterial({ color: 0x228B22 });
+const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+floor.rotation.x = -Math.PI / 2;
+scene.add(floor);
+
+// Camera
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.y = 15;
+camera.position.z = 20;
+
+// Local player
+const playerGeometry = new THREE.BoxGeometry(2, 2, 2);
+const playerMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+const localPlayer = new THREE.Mesh(playerGeometry, playerMaterial);
+scene.add(localPlayer);
+
+// Other players
+const otherPlayers = {};
+
+// Movement
+const keysPressed = {};
+document.addEventListener('keydown', (e) => keysPressed[e.key.toLowerCase()] = true);
+document.addEventListener('keyup', (e) => keysPressed[e.key.toLowerCase()] = false);
+
+// WebSocket
+const socket = new WebSocket('wss://YOUR-RENDER-URL.onrender.com');
 let playerId = null;
-let players = {};
 
-const keys = { w: false, a: false, s: false, d: false };
-
-document.addEventListener('keydown', (e) => {
-  if (e.key in keys) keys[e.key] = true;
-});
-document.addEventListener('keyup', (e) => {
-  if (e.key in keys) keys[e.key] = false;
+socket.addEventListener('open', () => {
+  console.log('Connected to server');
 });
 
-document.getElementById('fire-button').addEventListener('click', () => {
-  selectedFaction = 'fire';
-  toggleSelection('fire');
-});
-document.getElementById('ice-button').addEventListener('click', () => {
-  selectedFaction = 'ice';
-  toggleSelection('ice');
-});
+socket.addEventListener('message', (event) => {
+  const data = JSON.parse(event.data);
 
-function toggleSelection(faction) {
-  document.getElementById('fire-button').classList.toggle('selected', faction === 'fire');
-  document.getElementById('ice-button').classList.toggle('selected', faction === 'ice');
-}
-
-document.getElementById('play-button').addEventListener('click', () => {
-  const username = document.getElementById('username-input').value.trim();
-  if (!username || !selectedFaction) {
-    alert("Please enter a username and select a faction.");
-    return;
+  if (data.type === 'init') {
+    playerId = data.id;
   }
 
-  document.getElementById('ui-container').style.display = 'none';
+  if (data.type === 'update') {
+    Object.entries(data.players).forEach(([id, pos]) => {
+      if (id === playerId) return;
 
-  socket = new WebSocket('wss://factionwarsbackend.onrender.com');
+      if (!otherPlayers[id]) {
+        const mesh = new THREE.Mesh(playerGeometry, new THREE.MeshBasicMaterial({ color: 0x00aaff }));
+        scene.add(mesh);
+        otherPlayers[id] = mesh;
+      }
+      otherPlayers[id].position.set(pos.x, pos.y, pos.z);
+    });
 
-  socket.onopen = () => {
-    socket.send(JSON.stringify({
-      type: 'join',
-      username,
-      faction: selectedFaction
-    }));
-  };
+    // Remove disconnected players
+    Object.keys(otherPlayers).forEach((id) => {
+      if (!data.players[id]) {
+        scene.remove(otherPlayers[id]);
+        delete otherPlayers[id];
+      }
+    });
+  }
+});
 
-  socket.onmessage = (event) => {
-    const msg = JSON.parse(event.data);
-    if (msg.type === 'init') {
-      playerId = msg.id;
+// Update loop
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  const delta = clock.getDelta();
+  const speed = 15;
+
+  if (keysPressed['w']) localPlayer.position.z -= speed * delta;
+  if (keysPressed['s']) localPlayer.position.z += speed * delta;
+  if (keysPressed['a']) localPlayer.position.x -= speed * delta;
+  if (keysPressed['d']) localPlayer.position.x += speed * delta;
+
+  camera.position.x = localPlayer.position.x;
+  camera.position.z = localPlayer.position.z + 20;
+  camera.lookAt(localPlayer.position);
+
+  socket.send(JSON.stringify({
+    type: 'move',
+    position: {
+      x: localPlayer.position.x,
+      y: localPlayer.position.y,
+      z: localPlayer.position.z
     }
-    if (msg.type === 'state') {
-      players = msg.players;
-    }
-  };
+  }));
 
-  socket.onclose = () => console.log('Disconnected');
-
-  requestAnimationFrame(gameLoop);
-});
-
-function drawGrid(centerX, centerY) {
-  const gridSize = 50;
-  ctx.strokeStyle = '#333';
-  ctx.lineWidth = 1;
-
-  const offsetX = -centerX + canvas.width / 2;
-  const offsetY = -centerY + canvas.height / 2;
-
-  const startX = -offsetX % gridSize;
-  const startY = -offsetY % gridSize;
-
-  for (let x = startX; x < canvas.width; x += gridSize) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, canvas.height);
-    ctx.stroke();
-  }
-
-  for (let y = startY; y < canvas.height; y += gridSize) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(canvas.width, y);
-    ctx.stroke();
-  }
+  renderer.render(scene, camera);
 }
 
-function gameLoop() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  if (!playerId || !players[playerId]) {
-    requestAnimationFrame(gameLoop);
-    return;
-  }
-
-  const me = players[playerId];
-
-  // Send keys
-  socket.send(JSON.stringify({ type: 'move', keys }));
-
-  // Camera follows player
-  const camX = me.x;
-  const camY = me.y;
-
-  drawGrid(camX, camY);
-
-  for (let id in players) {
-    const p = players[id];
-    const screenX = canvas.width / 2 + (p.x - camX);
-    const screenY = canvas.height / 2 + (p.y - camY);
-
-    ctx.fillStyle = p.faction === 'fire' ? '#ff4c4c' : '#4cc9ff';
-    ctx.beginPath();
-    ctx.arc(screenX, screenY, 20, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = 'white';
-    ctx.font = '14px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(p.username, screenX, screenY - 30);
-  }
-
-  requestAnimationFrame(gameLoop);
-}
+animate();
 
