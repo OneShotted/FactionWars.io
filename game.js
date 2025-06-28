@@ -56,13 +56,13 @@ const playerMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
 const localPlayer = new THREE.Mesh(playerGeometry, playerMaterial);
 scene.add(localPlayer);
 
-// Username sprites
-const canvas2d = document.createElement('canvas');
-canvas2d.width = 256;
-canvas2d.height = 64;
-const ctx2d = canvas2d.getContext('2d');
-
+// Create separate name sprite with unique canvas for each player
 function createNameSprite(name) {
+  const canvas2d = document.createElement('canvas');
+  canvas2d.width = 256;
+  canvas2d.height = 64;
+  const ctx2d = canvas2d.getContext('2d');
+
   ctx2d.clearRect(0, 0, canvas2d.width, canvas2d.height);
   ctx2d.font = 'Bold 30px Arial';
   ctx2d.fillStyle = 'white';
@@ -417,7 +417,6 @@ const mouse = new THREE.Vector2();
 window.addEventListener('click', (event) => {
   if (!loggedIn) return;
 
-  // Sword cooldown check
   if (!canAttack) return;
 
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -437,16 +436,14 @@ window.addEventListener('click', (event) => {
 
     const dist = localPlayer.position.distanceTo(targetPlayer.mesh.position);
     if (dist <= 4) {
-      // Send attack event to server
       if (socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ type: 'attack', targetId }));
         canAttack = false;
-        setTimeout(() => { canAttack = true; }, 1000); // 1 second cooldown
+        setTimeout(() => { canAttack = true; }, 1000);
       }
     } else {
       console.log('Target too far to attack');
     }
   }
 });
-
 
