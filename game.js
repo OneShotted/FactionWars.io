@@ -8,18 +8,39 @@ const scene = new THREE.Scene();
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
 scene.add(ambientLight);
 
-const loader = new THREE.TextureLoader();
-loader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js@r150/examples/textures/grasslight-big.jpg', (grassTexture) => {
-  grassTexture.wrapS = THREE.RepeatWrapping;
-  grassTexture.wrapT = THREE.RepeatWrapping;
-  grassTexture.repeat.set(200, 200);
+// Create procedural grass texture using canvas
+const grassCanvas = document.createElement('canvas');
+grassCanvas.width = 256;
+grassCanvas.height = 256;
+const ctx = grassCanvas.getContext('2d');
 
-  const floorGeometry = new THREE.PlaneGeometry(10000, 10000);
-  const floorMaterial = new THREE.MeshStandardMaterial({ map: grassTexture });
-  const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-  floor.rotation.x = -Math.PI / 2;
-  scene.add(floor);
-});
+// Base green fill
+ctx.fillStyle = '#3a7d2d';  // grass green
+ctx.fillRect(0, 0, grassCanvas.width, grassCanvas.height);
+
+// Draw random lighter green spots for grass texture effect
+for (let i = 0; i < 3000; i++) {
+  const x = Math.random() * grassCanvas.width;
+  const y = Math.random() * grassCanvas.height;
+  const radius = Math.random() * 1.2;
+  const alpha = Math.random() * 0.4 + 0.1;
+  ctx.fillStyle = `rgba(70, 130, 40, ${alpha})`; // lighter green spots
+  ctx.beginPath();
+  ctx.ellipse(x, y, radius, radius * 1.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+const grassTexture = new THREE.CanvasTexture(grassCanvas);
+grassTexture.wrapS = THREE.RepeatWrapping;
+grassTexture.wrapT = THREE.RepeatWrapping;
+grassTexture.repeat.set(200, 200);
+
+// Then create your floor mesh like this:
+const floorGeometry = new THREE.PlaneGeometry(10000, 10000);
+const floorMaterial = new THREE.MeshStandardMaterial({ map: grassTexture });
+const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+floor.rotation.x = -Math.PI / 2;
+scene.add(floor);
 
 // Camera
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
