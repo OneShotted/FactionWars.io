@@ -8,12 +8,19 @@ const scene = new THREE.Scene();
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
 scene.add(ambientLight);
 
-// Textured Floor
 const loader = new THREE.TextureLoader();
-const grassTexture = loader.load('https://threejsfundamentals.org/threejs/resources/images/grass.jpg');
-grassTexture.wrapS = THREE.RepeatWrapping;
-grassTexture.wrapT = THREE.RepeatWrapping;
-grassTexture.repeat.set(200, 200);
+loader.load('https://threejsfundamentals.org/threejs/resources/images/grass.jpg', (grassTexture) => {
+  grassTexture.wrapS = THREE.RepeatWrapping;
+  grassTexture.wrapT = THREE.RepeatWrapping;
+  grassTexture.repeat.set(200, 200);
+
+  const floorGeometry = new THREE.PlaneGeometry(10000, 10000);
+  const floorMaterial = new THREE.MeshStandardMaterial({ map: grassTexture });
+  const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+  floor.rotation.x = -Math.PI / 2;
+  scene.add(floor);
+});
+
 
 const floorGeometry = new THREE.PlaneGeometry(10000, 10000);
 const floorMaterial = new THREE.MeshStandardMaterial({ map: grassTexture });
