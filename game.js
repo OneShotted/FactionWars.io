@@ -52,6 +52,7 @@ scene.add(floor);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 10, -15);
 
+// === Local Player (Warrior Style) ===
 const localPlayer = new THREE.Group();
 
 // Body
@@ -61,44 +62,41 @@ const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
 bodyMesh.position.set(0, 1, 0);
 localPlayer.add(bodyMesh);
 
-// Head
-const headGeometry = new THREE.SphereGeometry(0.8, 16, 16);
-const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
-const headMesh = new THREE.Mesh(headGeometry, headMaterial);
-headMesh.position.set(0, 2.5, 0);
-localPlayer.add(headMesh);
-
-// Eyes (optional)
-const eyeGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+// Face
+const eyeGeometry = new THREE.BoxGeometry(0.2, 0.2, 0.01);
 const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
-
 const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-leftEye.position.set(-0.25, 2.7, 0.75);
+leftEye.position.set(-0.4, 1.4, 1.01);
 const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-rightEye.position.set(0.25, 2.7, 0.75);
-localPlayer.add(leftEye, rightEye);
+rightEye.position.set(0.4, 1.4, 1.01);
+localPlayer.add(leftEye);
+localPlayer.add(rightEye);
+
+const smileGeometry = new THREE.BoxGeometry(0.6, 0.1, 0.01);
+const smile = new THREE.Mesh(smileGeometry, eyeMaterial);
+smile.position.set(0, 0.8, 1.01);
+localPlayer.add(smile);
 
 // Arms
-const armGeometry = new THREE.BoxGeometry(0.4, 1.2, 0.4);
+const armGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
 const armMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
-
 const leftArm = new THREE.Mesh(armGeometry, armMaterial);
-leftArm.position.set(-1.2, 1.5, 0);
+leftArm.position.set(-1.4, 1.1, 0);
 const rightArm = new THREE.Mesh(armGeometry, armMaterial);
-rightArm.position.set(1.2, 1.5, 0);
-localPlayer.add(leftArm, rightArm);
+rightArm.position.set(1.4, 1.1, 0);
+localPlayer.add(leftArm);
+localPlayer.add(rightArm);
 
-// Sword (in left hand)
-const swordGeometry = new THREE.BoxGeometry(0.2, 1.5, 0.2);
+// Sword
+const swordGeometry = new THREE.BoxGeometry(0.2, 1.2, 0.2);
 const swordMaterial = new THREE.MeshStandardMaterial({ color: 0x888888 });
 const sword = new THREE.Mesh(swordGeometry, swordMaterial);
-sword.position.set(-1.2, 0.8, 0); // below left arm
+sword.position.set(-1.4, 0.2, 0);
 localPlayer.add(sword);
 
 scene.add(localPlayer);
 
-
-// Other players
+// === Other Players ===
 const otherPlayers = {};
 
 // Movement state
@@ -155,10 +153,49 @@ socket.addEventListener('message', (event) => {
       if (id === playerId) return;
 
       if (!otherPlayers[id]) {
-        const mesh = new THREE.Mesh(playerGeometry, new THREE.MeshStandardMaterial({ color: 0x00aaff }));
-        scene.add(mesh);
-        otherPlayers[id] = mesh;
+        const group = new THREE.Group();
+
+        // Body
+        const bodyGeometry = new THREE.BoxGeometry(2, 2, 2);
+        const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x00aaff });
+        const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        bodyMesh.position.set(0, 1, 0);
+        group.add(bodyMesh);
+
+        // Face
+        const eyeGeometry = new THREE.BoxGeometry(0.2, 0.2, 0.01);
+        const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+        const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        leftEye.position.set(-0.4, 1.4, 1.01);
+        const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        rightEye.position.set(0.4, 1.4, 1.01);
+        group.add(leftEye, rightEye);
+
+        const smileGeometry = new THREE.BoxGeometry(0.6, 0.1, 0.01);
+        const smile = new THREE.Mesh(smileGeometry, eyeMaterial);
+        smile.position.set(0, 0.8, 1.01);
+        group.add(smile);
+
+        // Arms
+        const armGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+        const armMaterial = new THREE.MeshStandardMaterial({ color: 0x00aaff });
+        const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+        leftArm.position.set(-1.4, 1.1, 0);
+        const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+        rightArm.position.set(1.4, 1.1, 0);
+        group.add(leftArm, rightArm);
+
+        // Sword
+        const swordGeometry = new THREE.BoxGeometry(0.2, 1.2, 0.2);
+        const swordMaterial = new THREE.MeshStandardMaterial({ color: 0x888888 });
+        const sword = new THREE.Mesh(swordGeometry, swordMaterial);
+        sword.position.set(-1.4, 0.2, 0);
+        group.add(sword);
+
+        scene.add(group);
+        otherPlayers[id] = group;
       }
+
       otherPlayers[id].position.set(pos.x, pos.y, pos.z);
       otherPlayers[id].rotation.y = pos.rotY || 0;
     });
@@ -243,4 +280,5 @@ function animate() {
 }
 
 animate();
+
 
