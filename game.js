@@ -9,7 +9,7 @@ const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
 scene.add(ambientLight);
 
 const loader = new THREE.TextureLoader();
-loader.load('https://threejsfundamentals.org/threejs/resources/images/grass.jpg', (grassTexture) => {
+loader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/grasslight-big.jpg', (grassTexture) => {
   grassTexture.wrapS = THREE.RepeatWrapping;
   grassTexture.wrapT = THREE.RepeatWrapping;
   grassTexture.repeat.set(200, 200);
@@ -20,13 +20,6 @@ loader.load('https://threejsfundamentals.org/threejs/resources/images/grass.jpg'
   floor.rotation.x = -Math.PI / 2;
   scene.add(floor);
 });
-
-
-const floorGeometry = new THREE.PlaneGeometry(10000, 10000);
-const floorMaterial = new THREE.MeshStandardMaterial({ map: grassTexture });
-const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-floor.rotation.x = -Math.PI / 2;
-scene.add(floor);
 
 // Camera
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -127,4 +120,5 @@ function animate() {
 }
 
 animate();
+
 
