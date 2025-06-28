@@ -52,11 +52,51 @@ scene.add(floor);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 10, -15);
 
-// Local player
-const playerGeometry = new THREE.BoxGeometry(2, 2, 2);
-const playerMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
-const localPlayer = new THREE.Mesh(playerGeometry, playerMaterial);
+const localPlayer = new THREE.Group();
+
+// Body
+const bodyGeometry = new THREE.BoxGeometry(2, 2, 2);
+const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+bodyMesh.position.set(0, 1, 0);
+localPlayer.add(bodyMesh);
+
+// Head
+const headGeometry = new THREE.SphereGeometry(0.8, 16, 16);
+const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+const headMesh = new THREE.Mesh(headGeometry, headMaterial);
+headMesh.position.set(0, 2.5, 0);
+localPlayer.add(headMesh);
+
+// Eyes (optional)
+const eyeGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+
+const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+leftEye.position.set(-0.25, 2.7, 0.75);
+const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+rightEye.position.set(0.25, 2.7, 0.75);
+localPlayer.add(leftEye, rightEye);
+
+// Arms
+const armGeometry = new THREE.BoxGeometry(0.4, 1.2, 0.4);
+const armMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+
+const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+leftArm.position.set(-1.2, 1.5, 0);
+const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+rightArm.position.set(1.2, 1.5, 0);
+localPlayer.add(leftArm, rightArm);
+
+// Sword (in left hand)
+const swordGeometry = new THREE.BoxGeometry(0.2, 1.5, 0.2);
+const swordMaterial = new THREE.MeshStandardMaterial({ color: 0x888888 });
+const sword = new THREE.Mesh(swordGeometry, swordMaterial);
+sword.position.set(-1.2, 0.8, 0); // below left arm
+localPlayer.add(sword);
+
 scene.add(localPlayer);
+
 
 // Other players
 const otherPlayers = {};
