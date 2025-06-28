@@ -56,15 +56,6 @@ const playerMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
 const localPlayer = new THREE.Mesh(playerGeometry, playerMaterial);
 scene.add(localPlayer);
 
-// Sword for local player
-const swordGeometry = new THREE.BoxGeometry(0.2, 1, 0.2);
-const swordMaterial = new THREE.MeshStandardMaterial({ color: 0x888888 });
-const localSword = new THREE.Mesh(swordGeometry, swordMaterial);
-// Position sword on the right side, roughly arm length
-localSword.position.set(1, 0, 0);
-localSword.position.y = 0.5; // Slightly above center
-localPlayer.add(localSword);
-
 // Username sprites
 const canvas2d = document.createElement('canvas');
 canvas2d.width = 256;
@@ -89,43 +80,78 @@ function createNameSprite(name) {
   return sprite;
 }
 
-const otherPlayers = {};
-const playerHealth = {}; // Track health for players: id -> health
-const ATTACK_DAMAGE = 10;
-const ATTACK_COOLDOWN = 1000; // ms
-let lastAttackTime = 0;
+// Health bar sprite creation and update functions
+function createHealthBarSprite(healthPercent) {
+  const width = 100;
+  const height = 15;
+  const healthCanvas = document.createElement('canvas');
+  healthCanvas.width = width;
+  healthCanvas.height = height;
+  const ctx = healthCanvas.getContext('2d');
 
+  ctx.fillStyle = '#333';
+  ctx.fillRect(0, 0, width, height);
+
+  const greenWidth = width * healthPercent;
+  ctx.fillStyle = `rgb(${(1 - healthPercent) * 255}, ${healthPercent * 255}, 0)`;
+  ctx.fillRect(0, 0, greenWidth, height);
+
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(0, 0, width, height);
+
+  const texture = new THREE.CanvasTexture(healthCanvas);
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  const material = new THREE.SpriteMaterial({ map: texture, depthTest: false });
+  const sprite = new THREE.Sprite(material);
+  sprite.scale.set(4, 0.6, 1);
+  return sprite;
+}
+
+function addHealthBarToPlayer(playerObj, initialHealthPercent = 1) {
+  if (playerObj.healthSprite) {
+    scene.remove(playerObj.healthSprite);
+  }
+  playerObj.healthSprite = createHealthBarSprite(initialHealthPercent);
+  scene.add(playerObj.healthSprite);
+}
+
+function updateHealthBarSprite(sprite, healthPercent) {
+  const canvas = sprite.material.map.image;
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width;
+  const height = canvas.height;
+
+  ctx.clearRect(0, 0, width, height);
+
+  ctx.fillStyle = '#333';
+  ctx.fillRect(0, 0, width, height);
+
+  const greenWidth = width * healthPercent;
+  ctx.fillStyle = `rgb(${(1 - healthPercent) * 255}, ${healthPercent * 255}, 0)`;
+  ctx.fillRect(0, 0, greenWidth, height);
+
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(0, 0, width, height);
+
+  sprite.material.map.needsUpdate = true;
+}
+
+const otherPlayers = {};
 const keysPressed = {};
 document.addEventListener('keydown', (e) => keysPressed[e.key.toLowerCase()] = true);
 document.addEventListener('keyup', (e) => keysPressed[e.key.toLowerCase()] = false);
-
-// Attack on left click
-document.addEventListener('mousedown', (e) => {
-  if (!loggedIn || e.button !== 0) return; // only left click
-  const now = Date.now();
-  if (now - lastAttackTime < ATTACK_COOLDOWN) return; // cooldown
-
-  const origin = localPlayer.position.clone();
-  for (const id in otherPlayers) {
-    const targetPos = otherPlayers[id].mesh.position;
-    const distance = origin.distanceTo(targetPos);
-    if (distance < 5) { // attack range
-      // Send attack message to server
-      socket.send(JSON.stringify({
-        type: 'attack',
-        targetId: id
-      }));
-      lastAttackTime = now;
-      break; // one attack per click
-    }
-  }
-});
 
 // WebSocket setup
 const socket = new WebSocket('wss://factionwarsbackend.onrender.com');
 let playerId = null;
 let username = null;
 let loggedIn = false;
+
+// Sword attack cooldown (1 sec)
+let canAttack = true;
 
 // Login UI
 const loginOverlay = document.createElement('div');
@@ -217,7 +243,7 @@ socket.addEventListener('message', (event) => {
       username = data.username;
       loggedIn = true;
       localPlayer.position.set(0, 1, 0);
-      playerHealth[playerId] = 100; // Init local player health
+      localPlayer.health = 100;
       errorMsg.textContent = 'Signup successful!';
       errorMsg.style.color = 'lightgreen';
       errorMsg.style.opacity = '1';
@@ -239,7 +265,7 @@ socket.addEventListener('message', (event) => {
       username = data.username;
       loggedIn = true;
       localPlayer.position.set(0, 1, 0);
-      playerHealth[playerId] = 100; // Init local player health
+      localPlayer.health = 100;
       errorMsg.textContent = 'Login successful!';
       errorMsg.style.color = 'lightgreen';
       errorMsg.style.opacity = '1';
@@ -257,8 +283,31 @@ socket.addEventListener('message', (event) => {
 
   if (data.type === 'update' && loggedIn) {
     Object.entries(data.players).forEach(([id, pos]) => {
-      if (id === playerId) return;
+      if (id === playerId) {
+        // Update local player
+        localPlayer.position.set(pos.x, pos.y, pos.z);
+        localPlayer.rotation.y = pos.rotY || 0;
+        localPlayer.health = pos.health ?? 100;
 
+        if (!localPlayer.nameSprite) {
+          localPlayer.nameSprite = createNameSprite(username || 'You');
+          scene.add(localPlayer.nameSprite);
+        }
+        if (!localPlayer.healthSprite) {
+          addHealthBarToPlayer(localPlayer, localPlayer.health / 100);
+        } else {
+          updateHealthBarSprite(localPlayer.healthSprite, localPlayer.health / 100);
+        }
+
+        localPlayer.nameSprite.position.copy(localPlayer.position.clone().add(new THREE.Vector3(0, 3, 0)));
+        if (localPlayer.healthSprite) {
+          localPlayer.healthSprite.position.copy(localPlayer.position.clone().add(new THREE.Vector3(0, 2.5, 0)));
+        }
+
+        return;
+      }
+
+      // Other players
       if (!otherPlayers[id]) {
         const mesh = new THREE.Mesh(playerGeometry, new THREE.MeshStandardMaterial({ color: 0x00aaff }));
         scene.add(mesh);
@@ -266,33 +315,30 @@ socket.addEventListener('message', (event) => {
         const nameSprite = createNameSprite(pos.username || 'Unknown');
         scene.add(nameSprite);
 
-        otherPlayers[id] = { mesh, nameSprite, username: pos.username || 'Unknown' };
-        playerHealth[id] = 100; // Init other player health
+        otherPlayers[id] = { mesh, nameSprite, username: pos.username || 'Unknown', health: 100 };
+        addHealthBarToPlayer(otherPlayers[id], 1);
       }
 
       otherPlayers[id].mesh.position.set(pos.x, pos.y, pos.z);
       otherPlayers[id].mesh.rotation.y = pos.rotY || 0;
       otherPlayers[id].nameSprite.position.set(pos.x, pos.y + 3, pos.z);
+
+      otherPlayers[id].health = pos.health ?? 100;
+      if (otherPlayers[id].healthSprite) {
+        updateHealthBarSprite(otherPlayers[id].healthSprite, otherPlayers[id].health / 100);
+        otherPlayers[id].healthSprite.position.set(pos.x, pos.y + 2.5, pos.z);
+      }
     });
 
-    // Remove disconnected players and their health info
+    // Remove players no longer in update
     Object.keys(otherPlayers).forEach((id) => {
       if (!data.players[id]) {
         scene.remove(otherPlayers[id].mesh);
         scene.remove(otherPlayers[id].nameSprite);
+        if (otherPlayers[id].healthSprite) scene.remove(otherPlayers[id].healthSprite);
         delete otherPlayers[id];
-        delete playerHealth[id];
       }
     });
-  }
-
-  // Handle health update messages (optional, depending on server implementation)
-  if (data.type === 'healthUpdate' && loggedIn) {
-    if (data.playerId && typeof data.health === 'number') {
-      playerHealth[data.playerId] = data.health;
-      // Optionally update health UI here
-      console.log(`Player ${data.playerId} health: ${data.health}`);
-    }
   }
 });
 
@@ -331,6 +377,16 @@ function animate() {
   }
   localPlayer.nameSprite.position.copy(localPlayer.position.clone().add(new THREE.Vector3(0, 3, 0)));
 
+  if (localPlayer.healthSprite) {
+    localPlayer.healthSprite.position.copy(localPlayer.position.clone().add(new THREE.Vector3(0, 2.5, 0)));
+  }
+
+  Object.values(otherPlayers).forEach(p => {
+    if (p.healthSprite) {
+      p.healthSprite.position.copy(p.mesh.position.clone().add(new THREE.Vector3(0, 2.5, 0)));
+    }
+  });
+
   const camOffset = forward.clone().multiplyScalar(-15).add(new THREE.Vector3(0, 10, 0));
   camera.position.copy(localPlayer.position.clone().add(camOffset));
   camera.lookAt(localPlayer.position);
@@ -351,5 +407,46 @@ function animate() {
 }
 
 animate();
+
+// --- Attack handling ---
+
+// Raycaster for click detection
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+window.addEventListener('click', (event) => {
+  if (!loggedIn) return;
+
+  // Sword cooldown check
+  if (!canAttack) return;
+
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+
+  const enemyMeshes = Object.values(otherPlayers).map(p => p.mesh);
+  const intersects = raycaster.intersectObjects(enemyMeshes);
+
+  if (intersects.length > 0) {
+    const clickedMesh = intersects[0].object;
+    const clickedEntry = Object.entries(otherPlayers).find(([id, p]) => p.mesh === clickedMesh);
+    if (!clickedEntry) return;
+
+    const [targetId, targetPlayer] = clickedEntry;
+
+    const dist = localPlayer.position.distanceTo(targetPlayer.mesh.position);
+    if (dist <= 4) {
+      // Send attack event to server
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'attack', targetId }));
+        canAttack = false;
+        setTimeout(() => { canAttack = true; }, 1000); // 1 second cooldown
+      }
+    } else {
+      console.log('Target too far to attack');
+    }
+  }
+});
 
 
