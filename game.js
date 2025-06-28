@@ -9,7 +9,7 @@ const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
 scene.add(ambientLight);
 
 const loader = new THREE.TextureLoader();
-loader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/grasslight-big.jpg', (grassTexture) => {
+loader.load('https://threejsfundamentals.org/threejs/resources/images/grass.jpg', (grassTexture) => {
   grassTexture.wrapS = THREE.RepeatWrapping;
   grassTexture.wrapT = THREE.RepeatWrapping;
   grassTexture.repeat.set(200, 200);
@@ -105,20 +105,23 @@ function animate() {
   camera.position.copy(localPlayer.position.clone().add(camOffset));
   camera.lookAt(localPlayer.position);
 
-  // Send position
-  socket.send(JSON.stringify({
-    type: 'move',
-    position: {
-      x: localPlayer.position.x,
-      y: localPlayer.position.y,
-      z: localPlayer.position.z,
-      rotY: rotY
-    }
-  }));
+  // Only send if socket open
+  if (socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({
+      type: 'move',
+      position: {
+        x: localPlayer.position.x,
+        y: localPlayer.position.y,
+        z: localPlayer.position.z,
+        rotY: rotY
+      }
+    }));
+  }
 
   renderer.render(scene, camera);
 }
 
 animate();
+
 
 
