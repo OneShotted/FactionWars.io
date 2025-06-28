@@ -8,49 +8,18 @@ const scene = new THREE.Scene();
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
 scene.add(ambientLight);
 
-// Procedural grass texture generation function
-function createGrassTexture(size = 512) {
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d');
+const loader = new THREE.TextureLoader();
+loader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js@r150/examples/textures/grasslight-big.jpg', (grassTexture) => {
+  grassTexture.wrapS = THREE.RepeatWrapping;
+  grassTexture.wrapT = THREE.RepeatWrapping;
+  grassTexture.repeat.set(200, 200);
 
-  // Fill background with base green
-  ctx.fillStyle = '#3a6e3a'; // Dark green base
-  ctx.fillRect(0, 0, size, size);
-
-  // Draw random lighter green blades
-  for (let i = 0; i < 1500; i++) {
-    const x = Math.random() * size;
-    const y = Math.random() * size;
-    const length = 5 + Math.random() * 10;
-    const angle = (Math.random() - 0.5) * 0.5; // slight tilt
-
-    ctx.strokeStyle = `rgba(100, 180, 100, ${0.4 + Math.random() * 0.3})`; // varying green alpha
-    ctx.lineWidth = 1;
-
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + length * Math.sin(angle), y - length * Math.cos(angle));
-    ctx.stroke();
-  }
-
-  // Create Three.js texture from canvas
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(200, 200);
-  return texture;
-}
-
-// Use procedural grass texture on floor
-const grassTexture = createGrassTexture();
-
-const floorGeometry = new THREE.PlaneGeometry(10000, 10000);
-const floorMaterial = new THREE.MeshStandardMaterial({ map: grassTexture });
-const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-floor.rotation.x = -Math.PI / 2;
-scene.add(floor);
+  const floorGeometry = new THREE.PlaneGeometry(10000, 10000);
+  const floorMaterial = new THREE.MeshStandardMaterial({ map: grassTexture });
+  const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+  floor.rotation.x = -Math.PI / 2;
+  scene.add(floor);
+});
 
 // Camera
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -70,42 +39,131 @@ const keysPressed = {};
 document.addEventListener('keydown', (e) => keysPressed[e.key.toLowerCase()] = true);
 document.addEventListener('keyup', (e) => keysPressed[e.key.toLowerCase()] = false);
 
-// WebSocket
-const socket = new WebSocket('wss://factionwarsbackend.onrender.com');
+// --- LOGIN / SIGNUP UI & LOGIC ---
+
+const loginOverlay = document.createElement('div');
+loginOverlay.style.position = 'fixed';
+loginOverlay.style.top = '0';
+loginOverlay.style.left = '0';
+loginOverlay.style.width = '100%';
+loginOverlay.style.height = '100%';
+loginOverlay.style.backgroundColor = 'rgba(0,0,0,0.75)';
+loginOverlay.style.display = 'flex';
+loginOverlay.style.flexDirection = 'column';
+loginOverlay.style.justifyContent = 'center';
+loginOverlay.style.alignItems = 'center';
+loginOverlay.style.zIndex = '1000';
+
+loginOverlay.innerHTML = `
+  <h2 style="color:white; margin-bottom: 20px;">Login or Sign Up</h2>
+  <input id="usernameInput" placeholder="Username" style="font-size: 18px; padding: 10px; margin-bottom: 10px; width: 200px;" />
+  <input id="passwordInput" type="password" placeholder="Password" style="font-size: 18px; padding: 10px; margin-bottom: 10px; width: 200px;" />
+  <div style="margin-bottom: 10px; color: red;" id="loginError"></div>
+  <button id="loginBtn" style="font-size: 18px; padding: 10px 20px; margin-right: 10px;">Login</button>
+  <button id="signupBtn" style="font-size: 18px; padding: 10px 20px;">Sign Up</button>
+`;
+
+document.body.appendChild(loginOverlay);
+
+const usernameInput = document.getElementById('usernameInput');
+const passwordInput = document.getElementById('passwordInput');
+const loginError = document.getElementById('loginError');
+const loginBtn = document.getElementById('loginBtn');
+const signupBtn = document.getElementById('signupBtn');
+
+let loggedInUsername = null;
 let playerId = null;
+let gameStarted = false;
 
-socket.addEventListener('open', () => {
-  console.log('Connected to server');
-});
+let socket = null;
 
-socket.addEventListener('message', (event) => {
-  const data = JSON.parse(event.data);
+function setupSocket() {
+  socket = new WebSocket('wss://factionwarsbackend.onrender.com');
 
-  if (data.type === 'init') {
-    playerId = data.id;
+  socket.addEventListener('open', () => {
+    console.log('Connected to server');
+  });
+
+  socket.addEventListener('message', (event) => {
+    const data = JSON.parse(event.data);
+
+    if (data.type === 'loginSuccess') {
+      loggedInUsername = data.username;
+      playerId = data.id;
+      loginOverlay.style.display = 'none';
+      startGame();
+    }
+
+    if (data.type === 'loginError' || data.type === 'signupError') {
+      loginError.style.color = 'red';
+      loginError.textContent = data.message;
+    }
+
+    if (data.type === 'signupSuccess') {
+      loginError.style.color = 'lime';
+      loginError.textContent = 'Signup successful! You can now log in.';
+    }
+
+    if (data.type === 'update' && gameStarted) {
+      updatePlayers(data.players);
+    }
+  });
+}
+
+function sendLogin() {
+  const username = usernameInput.value.trim();
+  const password = passwordInput.value;
+  if (!username || !password) {
+    loginError.style.color = 'red';
+    loginError.textContent = 'Please enter username and password.';
+    return;
   }
+  socket.send(JSON.stringify({ type: 'login', username, password }));
+}
 
-  if (data.type === 'update') {
-    Object.entries(data.players).forEach(([id, pos]) => {
-      if (id === playerId) return;
-
-      if (!otherPlayers[id]) {
-        const mesh = new THREE.Mesh(playerGeometry, new THREE.MeshStandardMaterial({ color: 0x00aaff }));
-        scene.add(mesh);
-        otherPlayers[id] = mesh;
-      }
-      otherPlayers[id].position.set(pos.x, pos.y, pos.z);
-      otherPlayers[id].rotation.y = pos.rotY || 0;
-    });
-
-    Object.keys(otherPlayers).forEach((id) => {
-      if (!data.players[id]) {
-        scene.remove(otherPlayers[id]);
-        delete otherPlayers[id];
-      }
-    });
+function sendSignup() {
+  const username = usernameInput.value.trim();
+  const password = passwordInput.value;
+  if (!username || !password) {
+    loginError.style.color = 'red';
+    loginError.textContent = 'Please enter username and password.';
+    return;
   }
-});
+  socket.send(JSON.stringify({ type: 'signup', username, password }));
+}
+
+loginBtn.onclick = sendLogin;
+signupBtn.onclick = sendSignup;
+
+setupSocket();
+
+// Player updates handling
+function updatePlayers(playersData) {
+  Object.entries(playersData).forEach(([id, pos]) => {
+    if (id === playerId) return;
+
+    if (!otherPlayers[id]) {
+      const mesh = new THREE.Mesh(playerGeometry, new THREE.MeshStandardMaterial({ color: 0x00aaff }));
+      scene.add(mesh);
+      otherPlayers[id] = mesh;
+    }
+    otherPlayers[id].position.set(pos.x, pos.y, pos.z);
+    otherPlayers[id].rotation.y = pos.rotY || 0;
+  });
+
+  Object.keys(otherPlayers).forEach((id) => {
+    if (!playersData[id]) {
+      scene.remove(otherPlayers[id]);
+      delete otherPlayers[id];
+    }
+  });
+}
+
+// Game start function
+function startGame() {
+  gameStarted = true;
+  animate();
+}
 
 // Animate loop
 const clock = new THREE.Clock();
@@ -116,6 +174,8 @@ function animate() {
   const delta = clock.getDelta();
   const moveSpeed = 20 * delta;
   const rotSpeed = 2.5 * delta;
+
+  if (!gameStarted) return;
 
   // Movement: rotate + forward/backward
   if (keysPressed['a']) rotY += rotSpeed;
@@ -137,9 +197,11 @@ function animate() {
   camera.lookAt(localPlayer.position);
 
   // Only send if socket open
-  if (socket.readyState === WebSocket.OPEN) {
+  if (socket && socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({
       type: 'move',
+      id: playerId,
+      username: loggedInUsername,
       position: {
         x: localPlayer.position.x,
         y: localPlayer.position.y,
@@ -151,7 +213,5 @@ function animate() {
 
   renderer.render(scene, camera);
 }
-
-animate();
 
 
