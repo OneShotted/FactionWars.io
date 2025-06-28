@@ -56,13 +56,13 @@ const playerMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
 const localPlayer = new THREE.Mesh(playerGeometry, playerMaterial);
 scene.add(localPlayer);
 
-// Create separate name sprite with unique canvas for each player
-function createNameSprite(name) {
-  const canvas2d = document.createElement('canvas');
-  canvas2d.width = 256;
-  canvas2d.height = 64;
-  const ctx2d = canvas2d.getContext('2d');
+// Username sprites
+const canvas2d = document.createElement('canvas');
+canvas2d.width = 256;
+canvas2d.height = 64;
+const ctx2d = canvas2d.getContext('2d');
 
+function createNameSprite(name) {
   ctx2d.clearRect(0, 0, canvas2d.width, canvas2d.height);
   ctx2d.font = 'Bold 30px Arial';
   ctx2d.fillStyle = 'white';
@@ -284,26 +284,13 @@ socket.addEventListener('message', (event) => {
   if (data.type === 'update' && loggedIn) {
     Object.entries(data.players).forEach(([id, pos]) => {
       if (id === playerId) {
-        // Update local player
-        localPlayer.position.set(pos.x, pos.y, pos.z);
-        localPlayer.rotation.y = pos.rotY || 0;
-        localPlayer.health = pos.health ?? 100;
+        // DO NOT update local player position from server to avoid jitter
+        // Update health only
+        localPlayer.health = pos.health ?? localPlayer.health;
 
-        if (!localPlayer.nameSprite) {
-          localPlayer.nameSprite = createNameSprite(username || 'You');
-          scene.add(localPlayer.nameSprite);
-        }
-        if (!localPlayer.healthSprite) {
-          addHealthBarToPlayer(localPlayer, localPlayer.health / 100);
-        } else {
+        if (localPlayer.healthSprite) {
           updateHealthBarSprite(localPlayer.healthSprite, localPlayer.health / 100);
         }
-
-        localPlayer.nameSprite.position.copy(localPlayer.position.clone().add(new THREE.Vector3(0, 3, 0)));
-        if (localPlayer.healthSprite) {
-          localPlayer.healthSprite.position.copy(localPlayer.position.clone().add(new THREE.Vector3(0, 2.5, 0)));
-        }
-
         return;
       }
 
@@ -417,6 +404,7 @@ const mouse = new THREE.Vector2();
 window.addEventListener('click', (event) => {
   if (!loggedIn) return;
 
+  // Sword cooldown check
   if (!canAttack) return;
 
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -436,14 +424,16 @@ window.addEventListener('click', (event) => {
 
     const dist = localPlayer.position.distanceTo(targetPlayer.mesh.position);
     if (dist <= 4) {
+      // Send attack event to server
       if (socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ type: 'attack', targetId }));
         canAttack = false;
-        setTimeout(() => { canAttack = true; }, 1000);
+        setTimeout(() => { canAttack = true; }, 1000); // 1 second cooldown
       }
     } else {
       console.log('Target too far to attack');
     }
   }
 });
+
 
