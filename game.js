@@ -16,7 +16,7 @@ function createGrassTexture(size = 512) {
   const ctx = canvas.getContext('2d');
 
   // Fill background with base green
-  ctx.fillStyle = '#3a6e3a'; // Dark green base
+  ctx.fillStyle = '#3a6e3a';
   ctx.fillRect(0, 0, size, size);
 
   // Draw random lighter green blades
@@ -24,9 +24,9 @@ function createGrassTexture(size = 512) {
     const x = Math.random() * size;
     const y = Math.random() * size;
     const length = 5 + Math.random() * 10;
-    const angle = (Math.random() - 0.5) * 0.5; // slight tilt
+    const angle = (Math.random() - 0.5) * 0.5;
 
-    ctx.strokeStyle = `rgba(100, 180, 100, ${0.4 + Math.random() * 0.3})`; // varying green alpha
+    ctx.strokeStyle = `rgba(100, 180, 100, ${0.4 + Math.random() * 0.3})`;
     ctx.lineWidth = 1;
 
     ctx.beginPath();
@@ -35,7 +35,6 @@ function createGrassTexture(size = 512) {
     ctx.stroke();
   }
 
-  // Create Three.js texture from canvas
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
@@ -43,7 +42,6 @@ function createGrassTexture(size = 512) {
   return texture;
 }
 
-// Use procedural grass texture on floor
 const grassTexture = createGrassTexture();
 
 const floorGeometry = new THREE.PlaneGeometry(10000, 10000);
@@ -69,6 +67,9 @@ const otherPlayers = {};
 const keysPressed = {};
 document.addEventListener('keydown', (e) => keysPressed[e.key.toLowerCase()] = true);
 document.addEventListener('keyup', (e) => keysPressed[e.key.toLowerCase()] = false);
+
+// Disable right-click context menu
+document.addEventListener('contextmenu', (e) => e.preventDefault());
 
 // WebSocket
 const socket = new WebSocket('wss://factionwarsbackend.onrender.com');
@@ -107,6 +108,19 @@ socket.addEventListener('message', (event) => {
   }
 });
 
+// Jumping and gravity
+let velocityY = 0;
+let isGrounded = true;
+const gravity = -30;
+const jumpStrength = 15;
+
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' && isGrounded) {
+    velocityY = jumpStrength;
+    isGrounded = false;
+  }
+});
+
 // Animate loop
 const clock = new THREE.Clock();
 let rotY = 0;
@@ -129,6 +143,17 @@ function animate() {
     localPlayer.position.add(forward.clone().multiplyScalar(-moveSpeed));
   }
 
+  // Gravity and jumping
+  velocityY += gravity * delta;
+  localPlayer.position.y += velocityY * delta;
+
+  // Ground collision
+  if (localPlayer.position.y <= 1) {
+    localPlayer.position.y = 1;
+    velocityY = 0;
+    isGrounded = true;
+  }
+
   localPlayer.rotation.y = rotY;
 
   // Third-person camera
@@ -136,7 +161,7 @@ function animate() {
   camera.position.copy(localPlayer.position.clone().add(camOffset));
   camera.lookAt(localPlayer.position);
 
-  // Only send if socket open
+  // Send position to server
   if (socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({
       type: 'move',
@@ -153,4 +178,5 @@ function animate() {
 }
 
 animate();
+
 
