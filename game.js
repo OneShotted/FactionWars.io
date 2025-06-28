@@ -9,7 +9,7 @@ const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
 scene.add(ambientLight);
 
 const loader = new THREE.TextureLoader();
-loader.load('https://cdn.pixabay.com/photo/2016/10/21/18/35/grass-1752604_1280.jpg', (grassTexture) => {
+loader.load('https://threejsfundamentals.org/threejs/resources/images/grasslight-big.jpg', (grassTexture) => {
   grassTexture.wrapS = THREE.RepeatWrapping;
   grassTexture.wrapT = THREE.RepeatWrapping;
   grassTexture.repeat.set(200, 200);
