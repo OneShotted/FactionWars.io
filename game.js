@@ -16,17 +16,14 @@ function createGrassTexture() {
   grassCanvas.height = size;
   const ctx = grassCanvas.getContext('2d');
 
-  // Base green background
-  ctx.fillStyle = '#357a38'; // darker green base
+  ctx.fillStyle = '#357a38';
   ctx.fillRect(0, 0, size, size);
 
-  // Add random blades of grass as thin green lines
   for (let i = 0; i < 7000; i++) {
     const x = Math.random() * size;
     const y = Math.random() * size;
     const length = 6 + Math.random() * 8;
-    const angle = (Math.random() - 0.5) * 0.3; // small angle variation
-
+    const angle = (Math.random() - 0.5) * 0.3;
     ctx.strokeStyle = 'rgba(40, 140, 40, 0.6)';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -59,7 +56,7 @@ const playerMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
 const localPlayer = new THREE.Mesh(playerGeometry, playerMaterial);
 scene.add(localPlayer);
 
-// For displaying usernames above players
+// Username sprites
 const canvas2d = document.createElement('canvas');
 canvas2d.width = 256;
 canvas2d.height = 64;
@@ -83,21 +80,18 @@ function createNameSprite(name) {
   return sprite;
 }
 
-// Other players
-const otherPlayers = {}; // id -> { mesh, nameSprite, username }
-
-// Movement state
+const otherPlayers = {};
 const keysPressed = {};
 document.addEventListener('keydown', (e) => keysPressed[e.key.toLowerCase()] = true);
 document.addEventListener('keyup', (e) => keysPressed[e.key.toLowerCase()] = false);
 
-// WebSocket
+// WebSocket setup
 const socket = new WebSocket('wss://factionwarsbackend.onrender.com');
 let playerId = null;
 let username = null;
 let loggedIn = false;
 
-// UI Elements
+// Login UI
 const loginOverlay = document.createElement('div');
 loginOverlay.style.position = 'fixed';
 loginOverlay.style.top = '0';
@@ -120,6 +114,7 @@ loginOverlay.appendChild(title);
 const errorMsg = document.createElement('div');
 errorMsg.style.color = 'red';
 errorMsg.style.marginBottom = '10px';
+errorMsg.style.transition = 'opacity 1s ease';
 loginOverlay.appendChild(errorMsg);
 
 const inputUsername = document.createElement('input');
@@ -147,9 +142,10 @@ btnSignup.textContent = 'Signup';
 btnSignup.style.fontSize = '20px';
 loginOverlay.appendChild(btnSignup);
 
-// Send signup message
+// Handle signup
 btnSignup.onclick = () => {
   errorMsg.textContent = '';
+  errorMsg.style.opacity = '1';
   const u = inputUsername.value.trim();
   const p = inputPassword.value;
   if (!u || !p) {
@@ -159,9 +155,10 @@ btnSignup.onclick = () => {
   socket.send(JSON.stringify({ type: 'signup', username: u, password: p }));
 };
 
-// Send login message
+// Handle login
 btnLogin.onclick = () => {
   errorMsg.textContent = '';
+  errorMsg.style.opacity = '1';
   const u = inputUsername.value.trim();
   const p = inputPassword.value;
   if (!u || !p) {
@@ -183,8 +180,17 @@ socket.addEventListener('message', (event) => {
       playerId = data.id;
       username = data.username;
       loggedIn = true;
-      loginOverlay.style.display = 'none';
       localPlayer.position.set(0, 1, 0);
+      errorMsg.textContent = 'Signup successful!';
+      errorMsg.style.color = 'lightgreen';
+      errorMsg.style.opacity = '1';
+      setTimeout(() => errorMsg.style.opacity = '0', 1000);
+      setTimeout(() => {
+        loginOverlay.style.display = 'none';
+        errorMsg.textContent = '';
+        errorMsg.style.opacity = '1';
+        errorMsg.style.color = 'red';
+      }, 2000);
     } else {
       errorMsg.textContent = data.error || 'Signup failed';
     }
@@ -195,8 +201,17 @@ socket.addEventListener('message', (event) => {
       playerId = data.id;
       username = data.username;
       loggedIn = true;
-      loginOverlay.style.display = 'none';
       localPlayer.position.set(0, 1, 0);
+      errorMsg.textContent = 'Login successful!';
+      errorMsg.style.color = 'lightgreen';
+      errorMsg.style.opacity = '1';
+      setTimeout(() => errorMsg.style.opacity = '0', 1000);
+      setTimeout(() => {
+        loginOverlay.style.display = 'none';
+        errorMsg.textContent = '';
+        errorMsg.style.opacity = '1';
+        errorMsg.style.color = 'red';
+      }, 2000);
     } else {
       errorMsg.textContent = data.error || 'Login failed';
     }
@@ -204,7 +219,7 @@ socket.addEventListener('message', (event) => {
 
   if (data.type === 'update' && loggedIn) {
     Object.entries(data.players).forEach(([id, pos]) => {
-      if (id === playerId) return; // Skip local player, handled locally
+      if (id === playerId) return;
 
       if (!otherPlayers[id]) {
         const mesh = new THREE.Mesh(playerGeometry, new THREE.MeshStandardMaterial({ color: 0x00aaff }));
@@ -218,13 +233,9 @@ socket.addEventListener('message', (event) => {
 
       otherPlayers[id].mesh.position.set(pos.x, pos.y, pos.z);
       otherPlayers[id].mesh.rotation.y = pos.rotY || 0;
-
-      // Update name sprite position
-      const spritePos = new THREE.Vector3(pos.x, pos.y + 3, pos.z);
-      otherPlayers[id].nameSprite.position.copy(spritePos);
+      otherPlayers[id].nameSprite.position.set(pos.x, pos.y + 3, pos.z);
     });
 
-    // Remove disconnected players
     Object.keys(otherPlayers).forEach((id) => {
       if (!data.players[id]) {
         scene.remove(otherPlayers[id].mesh);
@@ -235,21 +246,22 @@ socket.addEventListener('message', (event) => {
   }
 });
 
-// Animate loop
+// Animation loop
 const clock = new THREE.Clock();
 let rotY = 0;
 
 function animate() {
   requestAnimationFrame(animate);
+
   if (!loggedIn) {
     renderer.render(scene, camera);
-    return; // Don’t move if not logged in
+    return;
   }
+
   const delta = clock.getDelta();
   const moveSpeed = 20 * delta;
   const rotSpeed = 2.5 * delta;
 
-  // Movement: rotate + forward/backward
   if (keysPressed['a']) rotY += rotSpeed;
   if (keysPressed['d']) rotY -= rotSpeed;
 
@@ -263,19 +275,16 @@ function animate() {
 
   localPlayer.rotation.y = rotY;
 
-  // Update local player's name sprite above box
   if (!localPlayer.nameSprite) {
     localPlayer.nameSprite = createNameSprite(username || 'You');
     scene.add(localPlayer.nameSprite);
   }
   localPlayer.nameSprite.position.copy(localPlayer.position.clone().add(new THREE.Vector3(0, 3, 0)));
 
-  // Third-person camera
   const camOffset = forward.clone().multiplyScalar(-15).add(new THREE.Vector3(0, 10, 0));
   camera.position.copy(localPlayer.position.clone().add(camOffset));
   camera.lookAt(localPlayer.position);
 
-  // Send position updates
   if (socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({
       type: 'move',
@@ -292,5 +301,4 @@ function animate() {
 }
 
 animate();
-
 
