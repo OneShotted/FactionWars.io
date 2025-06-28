@@ -15,11 +15,9 @@ function createGrassTexture(size = 512) {
   canvas.height = size;
   const ctx = canvas.getContext('2d');
 
-  // Fill background with base green
   ctx.fillStyle = '#3a6e3a';
   ctx.fillRect(0, 0, size, size);
 
-  // Draw random lighter green blades
   for (let i = 0; i < 1500; i++) {
     const x = Math.random() * size;
     const y = Math.random() * size;
@@ -70,6 +68,32 @@ document.addEventListener('keyup', (e) => keysPressed[e.key.toLowerCase()] = fal
 
 // Disable right-click context menu
 document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+// Right-click drag camera variables
+let isRightMouseDown = false;
+let lastMouseX = 0;
+let cameraAngle = 0;
+
+canvas.addEventListener('mousedown', (e) => {
+  if (e.button === 2) {
+    isRightMouseDown = true;
+    lastMouseX = e.clientX;
+  }
+});
+
+canvas.addEventListener('mouseup', (e) => {
+  if (e.button === 2) {
+    isRightMouseDown = false;
+  }
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  if (isRightMouseDown) {
+    const deltaX = e.clientX - lastMouseX;
+    cameraAngle -= deltaX * 0.005;
+    lastMouseX = e.clientX;
+  }
+});
 
 // WebSocket
 const socket = new WebSocket('wss://factionwarsbackend.onrender.com');
@@ -131,7 +155,6 @@ function animate() {
   const moveSpeed = 20 * delta;
   const rotSpeed = 2.5 * delta;
 
-  // Movement: rotate + forward/backward
   if (keysPressed['a']) rotY += rotSpeed;
   if (keysPressed['d']) rotY -= rotSpeed;
 
@@ -147,7 +170,6 @@ function animate() {
   velocityY += gravity * delta;
   localPlayer.position.y += velocityY * delta;
 
-  // Ground collision
   if (localPlayer.position.y <= 1) {
     localPlayer.position.y = 1;
     velocityY = 0;
@@ -156,12 +178,15 @@ function animate() {
 
   localPlayer.rotation.y = rotY;
 
-  // Third-person camera
-  const camOffset = forward.clone().multiplyScalar(-15).add(new THREE.Vector3(0, 10, 0));
+  // Third-person camera with orbit control
+  const camRadius = 15;
+  const camHeight = 10;
+  const camX = Math.sin(cameraAngle) * camRadius;
+  const camZ = Math.cos(cameraAngle) * camRadius;
+  const camOffset = new THREE.Vector3(camX, camHeight, camZ);
   camera.position.copy(localPlayer.position.clone().add(camOffset));
   camera.lookAt(localPlayer.position);
 
-  // Send position to server
   if (socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({
       type: 'move',
@@ -178,5 +203,4 @@ function animate() {
 }
 
 animate();
-
 
