@@ -8,18 +8,49 @@ const scene = new THREE.Scene();
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
 scene.add(ambientLight);
 
-const loader = new THREE.TextureLoader();
-loader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js@r150/examples/textures/grasslight-big.jpg', (grassTexture) => {
-  grassTexture.wrapS = THREE.RepeatWrapping;
-  grassTexture.wrapT = THREE.RepeatWrapping;
-  grassTexture.repeat.set(200, 200);
+// Procedural grass texture generation function
+function createGrassTexture(size = 512) {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
 
-  const floorGeometry = new THREE.PlaneGeometry(10000, 10000);
-  const floorMaterial = new THREE.MeshStandardMaterial({ map: grassTexture });
-  const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-  floor.rotation.x = -Math.PI / 2;
-  scene.add(floor);
-});
+  // Fill background with base green
+  ctx.fillStyle = '#3a6e3a'; // Dark green base
+  ctx.fillRect(0, 0, size, size);
+
+  // Draw random lighter green blades
+  for (let i = 0; i < 1500; i++) {
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    const length = 5 + Math.random() * 10;
+    const angle = (Math.random() - 0.5) * 0.5; // slight tilt
+
+    ctx.strokeStyle = `rgba(100, 180, 100, ${0.4 + Math.random() * 0.3})`; // varying green alpha
+    ctx.lineWidth = 1;
+
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + length * Math.sin(angle), y - length * Math.cos(angle));
+    ctx.stroke();
+  }
+
+  // Create Three.js texture from canvas
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(200, 200);
+  return texture;
+}
+
+// Use procedural grass texture on floor
+const grassTexture = createGrassTexture();
+
+const floorGeometry = new THREE.PlaneGeometry(10000, 10000);
+const floorMaterial = new THREE.MeshStandardMaterial({ map: grassTexture });
+const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+floor.rotation.x = -Math.PI / 2;
+scene.add(floor);
 
 // Camera
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -122,6 +153,5 @@ function animate() {
 }
 
 animate();
-
 
 
