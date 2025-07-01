@@ -52,44 +52,50 @@ scene.add(floor);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 10, -15);
 
-// Local player
+// === Hordes.io-style Warrior ===
 const localPlayer = new THREE.Group();
 
-// Body (cube)
-const bodyGeometry = new THREE.BoxGeometry(2, 2, 2);
-const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+// Body - short and wide
+const bodyGeometry = new THREE.BoxGeometry(1.5, 1.5, 1);
+const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x888800 });
 const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
-bodyMesh.position.set(0, 1, 0);
+bodyMesh.position.set(0, 0.75, 0); // half of height
 localPlayer.add(bodyMesh);
 
-// Eyes (on front of head)
-const eyeGeometry = new THREE.SphereGeometry(0.15, 8, 8);
+// Head - large and square
+const headGeometry = new THREE.BoxGeometry(1.4, 1.4, 1.4);
+const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+const headMesh = new THREE.Mesh(headGeometry, headMaterial);
+headMesh.position.set(0, 1.9, 0); // above body
+localPlayer.add(headMesh);
+
+// Eyes (front of head)
+const eyeGeometry = new THREE.SphereGeometry(0.1, 8, 8);
 const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
 
 const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+leftEye.position.set(-0.3, 2.2, 0.7); // front of head
 const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-
-// Position eyes slightly forward so they are not hidden inside the cube
-leftEye.position.set(-0.4, 2.3, 1.01);   // 1.01 to be slightly in front of cube
-rightEye.position.set(0.4, 2.3, 1.01);
-
+rightEye.position.set(0.3, 2.2, 0.7);
 localPlayer.add(leftEye, rightEye);
 
 // Arms
 const armGeometry = new THREE.BoxGeometry(0.4, 1.2, 0.4);
-const armMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+const armMaterial = new THREE.MeshStandardMaterial({ color: 0x888800 });
 
 const leftArm = new THREE.Mesh(armGeometry, armMaterial);
-leftArm.position.set(-1.2, 1.5, 0);
-const rightArm = new THREE.Mesh(armGeometry, armMaterial);
-rightArm.position.set(1.2, 1.5, 0);
-localPlayer.add(leftArm, rightArm);
+leftArm.position.set(-1, 1.2, 0);
+localPlayer.add(leftArm);
 
-// Sword
-const swordGeometry = new THREE.BoxGeometry(0.2, 1.5, 0.2);
-const swordMaterial = new THREE.MeshStandardMaterial({ color: 0x888888 });
+const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+rightArm.position.set(1, 1.2, 0);
+localPlayer.add(rightArm);
+
+// Sword - short and fat
+const swordGeometry = new THREE.BoxGeometry(0.2, 1, 0.2);
+const swordMaterial = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
 const sword = new THREE.Mesh(swordGeometry, swordMaterial);
-sword.position.set(-1.2, 0.8, 0);
+sword.position.set(1, 0.8, 0); // in right hand
 localPlayer.add(sword);
 
 scene.add(localPlayer);
