@@ -293,7 +293,7 @@ if (data.type === 'update') {
       scene.add(group);
       otherPlayers[id] = group;
 
-      // Create the name tag for this new player
+      // Create nameTag for the player
       const nameTag = document.createElement('div');
       nameTag.style.position = 'absolute';
       nameTag.style.color = 'white';
@@ -304,19 +304,21 @@ if (data.type === 'update') {
       nameTags[id] = nameTag;
     }
 
-    // Update position and rotation for all players (existing and new)
+    // Update position and rotation
     otherPlayers[id].position.set(player.x, player.y, player.z);
     otherPlayers[id].rotation.y = player.rotY || 0;
 
-    // Update name tag position on screen
-    const screenPos = otherPlayers[id].position.clone().project(camera);
-    const x = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
-    const y = (-screenPos.y * 0.5 + 0.5) * window.innerHeight;
-    nameTags[id].style.left = `${x}px`;
-    nameTags[id].style.top = `${y}px`;
+    // Update nameTag position on screen
+    if (nameTags[id]) {
+      const screenPos = otherPlayers[id].position.clone().project(camera);
+      const x = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+      const y = (-screenPos.y * 0.5 + 0.5) * window.innerHeight;
+      nameTags[id].style.left = `${x}px`;
+      nameTags[id].style.top = `${y}px`;
+    }
   });
 
-  // Cleanup removed players
+  // Remove disconnected players and their nameTags
   Object.keys(otherPlayers).forEach((id) => {
     if (!data.players[id]) {
       scene.remove(otherPlayers[id]);
@@ -350,7 +352,7 @@ if (data.type === 'update') {
         }
       }
     });
-  
+  }
 
   if (data.type === 'chat') {
     const line = document.createElement('div');
