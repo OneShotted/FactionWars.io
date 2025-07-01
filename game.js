@@ -324,7 +324,10 @@ function animate() {
     velocityY = 0;
     isGrounded = true;
   }
-
+  // Border clamp (invisible island boundaries)
+  const borderLimit = 400; // Adjust size of map as needed
+  localPlayer.position.x = Math.max(-borderLimit, Math.min(borderLimit, localPlayer.position.x));
+  localPlayer.position.z = Math.max(-borderLimit, Math.min(borderLimit, localPlayer.position.z));
   localPlayer.rotation.y = rotY;
 
   const camRadius = 15;
