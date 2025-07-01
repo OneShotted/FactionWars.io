@@ -245,30 +245,55 @@ socket.addEventListener('message', (event) => {
       if (id === playerId) return;
 
       if (!otherPlayers[id]) {
-        const group = new THREE.Group();
+  const group = new THREE.Group();
 
-        const body = new THREE.Mesh(bodyGeometry, new THREE.MeshStandardMaterial({ color: 0x00aaff }));
-        body.position.set(0, 1, 0);
-        group.add(body);
+  // Body - short and wide
+  const bodyGeometry = new THREE.BoxGeometry(1.5, 1.5, 1);
+  const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x00aaff }); // blue color for others
+  const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+  bodyMesh.position.set(0, 0.75, 0);
+  group.add(bodyMesh);
 
-        const eyeL = new THREE.Mesh(eyeGeometry, eyeMaterial);
-        eyeL.position.set(-0.25, 1.5, 0.75);
-        const eyeR = new THREE.Mesh(eyeGeometry, eyeMaterial);
-        eyeR.position.set(0.25, 1.5, 0.75);
-        group.add(eyeL, eyeR);
+  // Head - large and square
+  const headGeometry = new THREE.BoxGeometry(1.4, 1.4, 1.4);
+  const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 }); // yellow head
+  const headMesh = new THREE.Mesh(headGeometry, headMaterial);
+  headMesh.position.set(0, 1.9, 0);
+  group.add(headMesh);
 
-        const armL = new THREE.Mesh(armGeometry, armMaterial);
-        armL.position.set(-1.2, 1.5, 0);
-        const armR = new THREE.Mesh(armGeometry, armMaterial);
-        armR.position.set(1.2, 1.5, 0);
-        group.add(armL, armR);
+  // Eyes (front of head)
+  const eyeGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+  const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
 
-        const sword = new THREE.Mesh(swordGeometry, swordMaterial);
-        sword.position.set(-1.2, 0.8, 0);
-        group.add(sword);
+  const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+  leftEye.position.set(-0.3, 2.2, 0.7);
+  const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+  rightEye.position.set(0.3, 2.2, 0.7);
+  group.add(leftEye, rightEye);
 
-        scene.add(group);
-        otherPlayers[id] = group;
+  // Arms
+  const armGeometry = new THREE.BoxGeometry(0.4, 1.2, 0.4);
+  const armMaterial = new THREE.MeshStandardMaterial({ color: 0x00aaff }); // same blue
+
+  const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+  leftArm.position.set(-1, 1.2, 0);
+  group.add(leftArm);
+
+  const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+  rightArm.position.set(1, 1.2, 0);
+  group.add(rightArm);
+
+  // Sword
+  const swordGeometry = new THREE.BoxGeometry(0.2, 1, 0.2);
+  const swordMaterial = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
+  const sword = new THREE.Mesh(swordGeometry, swordMaterial);
+  sword.position.set(1, 0.8, 0);
+  group.add(sword);
+
+  scene.add(group);
+  otherPlayers[id] = group;
+}
+
 
         const nameTag = document.createElement('div');
         nameTag.style.position = 'absolute';
