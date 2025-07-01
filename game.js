@@ -167,12 +167,15 @@ chatInput.style.marginTop = '5px';
 chatInput.style.padding = '5px';
 chatBox.appendChild(chatInput);
 
+// Chat message send
 chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && chatInput.value.trim()) {
     socket.send(JSON.stringify({ type: 'chat', text: chatInput.value.trim() }));
     chatInput.value = '';
   }
-  // Press Enter to focus chat input
+});
+
+// Press Enter to focus chat input
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && gameStarted) {
     // If not already typing in chat, focus the input
@@ -183,7 +186,6 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-});
 
 // Other players
 const otherPlayers = {};
