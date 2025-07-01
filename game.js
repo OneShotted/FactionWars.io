@@ -164,6 +164,17 @@ chatInput.addEventListener('keydown', (e) => {
     socket.send(JSON.stringify({ type: 'chat', text: chatInput.value.trim() }));
     chatInput.value = '';
   }
+  // Press Enter to focus chat input
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && gameStarted) {
+    // If not already typing in chat, focus the input
+    if (document.activeElement !== chatInput) {
+      e.preventDefault();
+      chatInput.focus();
+    }
+  }
+});
+
 });
 
 // Other players
