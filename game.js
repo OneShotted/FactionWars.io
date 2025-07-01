@@ -55,21 +55,27 @@ camera.position.set(0, 10, -15);
 // Local player
 const localPlayer = new THREE.Group();
 
+// Body (cube)
 const bodyGeometry = new THREE.BoxGeometry(2, 2, 2);
 const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
 const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
 bodyMesh.position.set(0, 1, 0);
 localPlayer.add(bodyMesh);
 
-const eyeGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+// Eyes (on front of head)
+const eyeGeometry = new THREE.SphereGeometry(0.15, 8, 8);
 const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
 
 const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-leftEye.position.set(-0.25, 1.5, 0.75);
 const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-rightEye.position.set(0.25, 1.5, 0.75);
+
+// Position eyes slightly forward so they are not hidden inside the cube
+leftEye.position.set(-0.4, 2.3, 1.01);   // 1.01 to be slightly in front of cube
+rightEye.position.set(0.4, 2.3, 1.01);
+
 localPlayer.add(leftEye, rightEye);
 
+// Arms
 const armGeometry = new THREE.BoxGeometry(0.4, 1.2, 0.4);
 const armMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
 
@@ -79,6 +85,7 @@ const rightArm = new THREE.Mesh(armGeometry, armMaterial);
 rightArm.position.set(1.2, 1.5, 0);
 localPlayer.add(leftArm, rightArm);
 
+// Sword
 const swordGeometry = new THREE.BoxGeometry(0.2, 1.5, 0.2);
 const swordMaterial = new THREE.MeshStandardMaterial({ color: 0x888888 });
 const sword = new THREE.Mesh(swordGeometry, swordMaterial);
@@ -86,6 +93,7 @@ sword.position.set(-1.2, 0.8, 0);
 localPlayer.add(sword);
 
 scene.add(localPlayer);
+
 
 // Username screen
 let username = '';
