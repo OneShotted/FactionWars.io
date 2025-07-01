@@ -292,25 +292,43 @@ if (data.type === 'update') {
 
       scene.add(group);
       otherPlayers[id] = group;
+
+      // Create the name tag for this new player
+      const nameTag = document.createElement('div');
+      nameTag.style.position = 'absolute';
+      nameTag.style.color = 'white';
+      nameTag.style.fontSize = '14px';
+      nameTag.style.fontWeight = 'bold';
+      nameTag.innerText = player.username || 'Player';
+      document.body.appendChild(nameTag);
+      nameTags[id] = nameTag;
     }
 
-    // Update position and rotation
+    // Update position and rotation for all players (existing and new)
     otherPlayers[id].position.set(player.x, player.y, player.z);
     otherPlayers[id].rotation.y = player.rotY || 0;
+
+    // Update name tag position on screen
+    const screenPos = otherPlayers[id].position.clone().project(camera);
+    const x = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (-screenPos.y * 0.5 + 0.5) * window.innerHeight;
+    nameTags[id].style.left = `${x}px`;
+    nameTags[id].style.top = `${y}px`;
+  });
+
+  // Cleanup removed players
+  Object.keys(otherPlayers).forEach((id) => {
+    if (!data.players[id]) {
+      scene.remove(otherPlayers[id]);
+      delete otherPlayers[id];
+      if (nameTags[id]) {
+        nameTags[id].remove();
+        delete nameTags[id];
+      }
+    }
   });
 }
 
-
-
-        const nameTag = document.createElement('div');
-        nameTag.style.position = 'absolute';
-        nameTag.style.color = 'white';
-        nameTag.style.fontSize = '14px';
-        nameTag.style.fontWeight = 'bold';
-        nameTag.innerText = player.username || 'Player';
-        document.body.appendChild(nameTag);
-        nameTags[id] = nameTag;
-      }
 
       otherPlayers[id].position.set(player.x, player.y, player.z);
       otherPlayers[id].rotation.y = player.rotY || 0;
