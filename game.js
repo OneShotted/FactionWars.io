@@ -350,7 +350,7 @@ if (data.type === 'update') {
         }
       }
     });
-  }
+  
 
   if (data.type === 'chat') {
     const line = document.createElement('div');
