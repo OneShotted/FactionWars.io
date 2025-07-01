@@ -240,59 +240,66 @@ socket.addEventListener('message', (event) => {
     playerId = data.id;
   }
 
-  if (data.type === 'update') {
-    Object.entries(data.players).forEach(([id, player]) => {
-      if (id === playerId) return;
+if (data.type === 'update') {
+  Object.entries(data.players).forEach(([id, player]) => {
+    if (id === playerId) return;
 
-      if (!otherPlayers[id]) {
-  const group = new THREE.Group();
+    if (!otherPlayers[id]) {
+      const group = new THREE.Group();
 
-  // Body - short and wide
-  const bodyGeometry = new THREE.BoxGeometry(1.5, 1.5, 1);
-  const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x00aaff }); // blue color for others
-  const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
-  bodyMesh.position.set(0, 0.75, 0);
-  group.add(bodyMesh);
+      // Body - short and wide
+      const bodyGeometry = new THREE.BoxGeometry(1.5, 1.5, 1);
+      const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x00aaff }); // blue color for others
+      const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+      bodyMesh.position.set(0, 0.75, 0);
+      group.add(bodyMesh);
 
-  // Head - large and square
-  const headGeometry = new THREE.BoxGeometry(1.4, 1.4, 1.4);
-  const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 }); // yellow head
-  const headMesh = new THREE.Mesh(headGeometry, headMaterial);
-  headMesh.position.set(0, 1.9, 0);
-  group.add(headMesh);
+      // Head - large and square
+      const headGeometry = new THREE.BoxGeometry(1.4, 1.4, 1.4);
+      const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 }); // yellow head
+      const headMesh = new THREE.Mesh(headGeometry, headMaterial);
+      headMesh.position.set(0, 1.9, 0);
+      group.add(headMesh);
 
-  // Eyes (front of head)
-  const eyeGeometry = new THREE.SphereGeometry(0.1, 8, 8);
-  const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+      // Eyes (front of head)
+      const eyeGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+      const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
 
-  const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-  leftEye.position.set(-0.3, 2.2, 0.7);
-  const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-  rightEye.position.set(0.3, 2.2, 0.7);
-  group.add(leftEye, rightEye);
+      const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+      leftEye.position.set(-0.3, 2.2, 0.7);
+      const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+      rightEye.position.set(0.3, 2.2, 0.7);
+      group.add(leftEye, rightEye);
 
-  // Arms
-  const armGeometry = new THREE.BoxGeometry(0.4, 1.2, 0.4);
-  const armMaterial = new THREE.MeshStandardMaterial({ color: 0x00aaff }); // same blue
+      // Arms
+      const armGeometry = new THREE.BoxGeometry(0.4, 1.2, 0.4);
+      const armMaterial = new THREE.MeshStandardMaterial({ color: 0x00aaff }); // same blue
 
-  const leftArm = new THREE.Mesh(armGeometry, armMaterial);
-  leftArm.position.set(-1, 1.2, 0);
-  group.add(leftArm);
+      const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+      leftArm.position.set(-1, 1.2, 0);
+      group.add(leftArm);
 
-  const rightArm = new THREE.Mesh(armGeometry, armMaterial);
-  rightArm.position.set(1, 1.2, 0);
-  group.add(rightArm);
+      const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+      rightArm.position.set(1, 1.2, 0);
+      group.add(rightArm);
 
-  // Sword
-  const swordGeometry = new THREE.BoxGeometry(0.2, 1, 0.2);
-  const swordMaterial = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
-  const sword = new THREE.Mesh(swordGeometry, swordMaterial);
-  sword.position.set(1, 0.8, 0);
-  group.add(sword);
+      // Sword
+      const swordGeometry = new THREE.BoxGeometry(0.2, 1, 0.2);
+      const swordMaterial = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
+      const sword = new THREE.Mesh(swordGeometry, swordMaterial);
+      sword.position.set(1, 0.8, 0);
+      group.add(sword);
 
-  scene.add(group);
-  otherPlayers[id] = group;
+      scene.add(group);
+      otherPlayers[id] = group;
+    }
+
+    // Update position and rotation
+    otherPlayers[id].position.set(player.x, player.y, player.z);
+    otherPlayers[id].rotation.y = player.rotY || 0;
+  });
 }
+
 
 
         const nameTag = document.createElement('div');
